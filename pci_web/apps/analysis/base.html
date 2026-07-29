@@ -1,0 +1,239 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="shortcut icon" href="{% static 'images/zamintwin_logo.png' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.css' %}">
+    <link rel="stylesheet" href="{% static 'fontawesome/css/all.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <title>ZaminTwin | {% block title %}{% endblock %}</title>
+
+    <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { padding: 0; margin: 0; font-family: 'DM Sans', sans-serif; font-size: 14px; background: #f1f5f9; color: #0f172a; }
+
+    #wrapper { display: flex; width: 100%; min-height: 100vh; }
+
+    /* ===== SIDEBAR ===== */
+    #left-sidebar {
+        width: 60px; min-width: 60px; height: 100vh; position: fixed; top: 0; left: 0; z-index: 100;
+        background: #0f172a; color: #94a3b8; display: flex; flex-direction: column;
+        transition: width 0.25s ease, min-width 0.25s ease;
+        overflow: hidden;
+    }
+    #left-sidebar.active { width: 220px; min-width: 220px; }
+
+    .sidebar-brand {
+        height: 52px; display: flex; align-items: center; padding: 0 14px; gap: 10px;
+        border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
+    }
+    .sidebar-brand-icon {
+        width: 32px; height: 32px; min-width: 32px; border-radius: 8px;
+        background: #3b82f6; display: flex; align-items: center; justify-content: center;
+        font-size: 0.85rem; color: white; font-weight: 700;
+    }
+    .sidebar-brand-text { font-weight: 800; font-size: 1.3rem; white-space: nowrap; opacity: 0; transition: opacity 0.2s; color: #fff; }
+    .sidebar-brand-text .twin { color: #22d3ee; }
+    .sidebar-brand-text .ai { color: #94a3b8; font-weight: 600; }
+    #left-sidebar.active .sidebar-brand-text { opacity: 1; }
+
+    .sidebar-toggle {
+        position: absolute; top: 12px; right: -12px; width: 24px; height: 24px;
+        border-radius: 50%; background: #1e293b; border: 2px solid #334155;
+        color: #94a3b8; font-size: 0.6rem; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.2s; z-index: 101;
+    }
+    .sidebar-toggle:hover { background: #3b82f6; color: white; border-color: #3b82f6; }
+    #left-sidebar.active .sidebar-toggle { right: 12px; }
+
+    .left-nav { padding: 12px 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .left-nav a {
+        display: flex; align-items: center; gap: 12px; padding: 10px 16px; margin: 0 8px;
+        color: #94a3b8; text-decoration: none; border-radius: 8px;
+        transition: all 0.15s; white-space: nowrap; font-size: 0.85rem; font-weight: 500;
+    }
+    .left-nav a:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; text-decoration: none; }
+    .left-nav a.active { background: rgba(59,130,246,0.12); color: #3b82f6; }
+    .left-nav a > i { width: 28px; font-size: 1rem; text-align: center; flex-shrink: 0; }
+    .left-nav a > span { opacity: 0; transition: opacity 0.2s; }
+    #left-sidebar.active .left-nav a > span { opacity: 1; }
+
+    .sidebar-footer {
+        padding: 12px 8px; border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .sidebar-footer a {
+        display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+        color: #94a3b8; text-decoration: none; border-radius: 8px;
+        transition: all 0.15s; white-space: nowrap; font-size: 0.82rem; font-weight: 500;
+    }
+    .sidebar-footer a:hover { background: rgba(239,68,68,0.08); color: #ef4444; text-decoration: none; }
+    .sidebar-footer a > i { width: 28px; font-size: 0.95rem; text-align: center; flex-shrink: 0; }
+    .sidebar-footer a > span { opacity: 0; transition: opacity 0.2s; }
+    #left-sidebar.active .sidebar-footer a > span { opacity: 1; }
+
+    /* ===== RIGHT CONTENT ===== */
+    #right-bar {
+        flex: 1; margin-left: 60px; min-height: 100vh;
+        display: flex; flex-direction: column;
+        transition: margin-left 0.25s ease;
+    }
+    #left-sidebar.active ~ #right-bar { margin-left: 220px; }
+
+    /* Topbar */
+    .topbar {
+        height: 52px; background: white; border-bottom: 1px solid #e2e8f0;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 24px; position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #64748b; }
+    .topbar-breadcrumb a { color: #64748b; text-decoration: none; transition: color 0.15s; }
+    .topbar-breadcrumb a:hover { color: #3b82f6; text-decoration: none; }
+    .topbar-breadcrumb .breadcrumb-item + .breadcrumb-item::before { content: '›'; color: #cbd5e1; padding: 0 6px; }
+    .topbar-breadcrumb .breadcrumb-item.active { color: #0f172a; font-weight: 600; }
+
+    /* Override bootstrap breadcrumb */
+    .topbar-breadcrumb .breadcrumb { background: none; margin: 0; padding: 0; font-size: 0.82rem; }
+    .topbar-breadcrumb .breadcrumb-item a { color: #64748b; }
+    .topbar-breadcrumb .breadcrumb-item a:hover { color: #3b82f6; text-decoration: none; }
+    .topbar-breadcrumb .breadcrumb-item.active { color: #0f172a; font-weight: 600; }
+    .topbar-breadcrumb .breadcrumb-item + .breadcrumb-item::before { content: '›'; color: #cbd5e1; }
+
+    .topbar-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: background 0.15s; }
+    .topbar-user:hover { background: #f8fafc; }
+    .topbar-username { font-size: 0.82rem; font-weight: 600; color: #0f172a; }
+    .topbar-avatar {
+        width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white; display: flex; align-items: center; justify-content: center;
+        font-size: 0.75rem; font-weight: 700;
+    }
+    .topbar-dropdown { position: relative; }
+    .topbar-menu {
+        display: none; position: absolute; top: 46px; right: 0;
+        background: white; border: 1px solid #e2e8f0; border-radius: 10px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1); min-width: 180px; z-index: 60;
+        overflow: hidden;
+    }
+    .topbar-menu.show { display: block; }
+    .topbar-menu a {
+        display: flex; align-items: center; gap: 8px; padding: 10px 16px; font-size: 0.82rem;
+        color: #334155; text-decoration: none; transition: background 0.15s;
+    }
+    .topbar-menu a:hover { background: #f8fafc; text-decoration: none; }
+    .topbar-menu a.logout { color: #ef4444; border-top: 1px solid #f1f5f9; }
+    .topbar-menu a.logout:hover { background: #fef2f2; }
+
+    /* Content area */
+    .content-area { flex: 1; padding: 0; }
+
+    /* Hide old breadcrumb style */
+    .breadcrumb-panel { display: none; }
+
+    @media (max-width: 768px) {
+        #left-sidebar { width: 0; min-width: 0; }
+        #left-sidebar.active { width: 220px; min-width: 220px; }
+        #right-bar { margin-left: 0; }
+        #left-sidebar.active ~ #right-bar { margin-left: 0; }
+        .topbar { padding: 0 12px; }
+    }
+    </style>
+
+    {% block style %}{% endblock %}
+</head>
+<body>
+
+<div id="wrapper">
+    <!-- Sidebar -->
+    <nav id="left-sidebar">
+        <div class="sidebar-brand">
+            <img src="{% static 'images/zamintwin_logo.png' %}" alt="Z" class="sidebar-brand-icon-img" style="width:32px;height:auto;object-fit:contain;">
+            <span class="sidebar-brand-text">ZaminTwin<span class="ai">.ai</span></span>
+        </div>
+        <button class="sidebar-toggle" id="sidebarToggle"><i class="fa fa-chevron-right"></i></button>
+        <nav class="left-nav">
+            <a href="{% url 'projects:index' %}"><i class="fa fa-road"></i> <span>Projects</span></a>
+            <a href="{% url 'reports:index' %}"><i class="fa fa-file-alt"></i> <span>Reports</span></a>
+            <a href="{% url 'accounts:index' %}"><i class="fa fa-users-cog"></i> <span>Settings</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="{% url 'accounts:logout' %}"><i class="fa fa-sign-out-alt"></i> <span>Sign Out</span></a>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <div id="right-bar">
+        <!-- Topbar -->
+        <div class="topbar">
+            <div class="topbar-breadcrumb">
+                <ol class="breadcrumb">
+                    {% block breadcrumb %}{% endblock %}
+                </ol>
+            </div>
+            <div class="topbar-dropdown" id="userDropdown">
+                <div class="topbar-user">
+                    <span class="topbar-username">{% if user.is_authenticated %}{{ user.username }}{% endif %}</span>
+                    <div class="topbar-avatar">{% if user.is_authenticated %}{{ user.username|make_list|first|upper }}{% else %}?{% endif %}</div>
+                </div>
+                <div class="topbar-menu" id="userMenu">
+                    <a href="{% url 'accounts:index' %}"><i class="fa fa-cog" style="color:#94a3b8;"></i> Settings</a>
+                    <a href="{% url 'accounts:logout' %}" class="logout"><i class="fa fa-sign-out-alt"></i> Sign Out</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="content-area">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/jquery.slim.js' %}"></script>
+<script src="{% static 'js/umd_popper.js' %}"></script>
+<script src="{% static 'js/bootstrap.min.js' %}"></script>
+<script>
+$(document).ready(function() {
+    // Sidebar toggle with localStorage persistence
+    var sidebar = $('#left-sidebar');
+    var toggle = $('#sidebarToggle');
+    var isOpen = localStorage.getItem('sidebar_open') === 'true';
+
+    if (isOpen) {
+        sidebar.addClass('active');
+        toggle.find('i').removeClass('fa-chevron-right').addClass('fa-chevron-left');
+    }
+
+    toggle.click(function() {
+        sidebar.toggleClass('active');
+        var open = sidebar.hasClass('active');
+        toggle.find('i').toggleClass('fa-chevron-right', !open).toggleClass('fa-chevron-left', open);
+        localStorage.setItem('sidebar_open', open);
+    });
+
+    // Highlight active nav link
+    var path = window.location.pathname;
+    $('.left-nav a').each(function() {
+        var href = $(this).attr('href');
+        if (path === href || (href !== '/' && path.startsWith(href))) {
+            $(this).addClass('active');
+        }
+    });
+
+    // User dropdown
+    $('#userDropdown').click(function(e) {
+        e.stopPropagation();
+        $('#userMenu').toggleClass('show');
+    });
+    $(document).click(function() { $('#userMenu').removeClass('show'); });
+});
+</script>
+
+{% block scriptBlock %}
+{% endblock %}
+
+</body>
+</html>

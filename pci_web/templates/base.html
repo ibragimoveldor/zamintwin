@@ -1,0 +1,364 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="shortcut icon" href="{% static 'images/zamintwin_logo.png' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.css' %}">
+    <link rel="stylesheet" href="{% static 'fontawesome/css/all.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <title>ZaminTwin | {% block title %}{% endblock %}</title>
+
+    <style>
+    :root {
+        --bg: #f1f5f9; --text: #0f172a; --text-secondary: #64748b;
+        --card-bg: #fff; --card-border: #e2e8f0;
+        --topbar-bg: #fff; --topbar-border: #e2e8f0;
+        --stat-bg: #fff; --stat-border: #e2e8f0;
+        --input-bg: #f8fafc; --input-border: #e2e8f0;
+        --panel-bg: #fff; --panel-text: #0f172a; --panel-text-secondary: #64748b;
+        --panel-text-muted: #94a3b8; --panel-text-faint: #cbd5e1;
+        --panel-border: #e2e8f0; --panel-hover: rgba(0,0,0,0.04);
+        --panel-stat-bg: #f8fafc; --panel-overlay-bg: rgba(15,23,42,0.85);
+        --sidebar-bg: #0f172a; --sidebar-text: #94a3b8; --sidebar-border: rgba(255,255,255,0.06);
+    }
+    [data-theme="dark"] {
+        --bg: #0b1120; --text: #e2e8f0; --text-secondary: #94a3b8;
+        --card-bg: #1e293b; --card-border: rgba(255,255,255,0.06);
+        --topbar-bg: #0f172a; --topbar-border: rgba(255,255,255,0.06);
+        --stat-bg: rgba(255,255,255,0.04); --stat-border: rgba(255,255,255,0.06);
+        --input-bg: rgba(255,255,255,0.06); --input-border: rgba(255,255,255,0.1);
+        --panel-bg: #0f172a; --panel-text: #fff; --panel-text-secondary: rgba(255,255,255,0.5);
+        --panel-text-muted: rgba(255,255,255,0.4); --panel-text-faint: rgba(255,255,255,0.2);
+        --panel-border: rgba(255,255,255,0.06); --panel-hover: rgba(255,255,255,0.06);
+        --panel-stat-bg: rgba(255,255,255,0.04); --panel-overlay-bg: rgba(15,23,42,0.92);
+        --sidebar-bg: #0f172a; --sidebar-text: #94a3b8; --sidebar-border: rgba(255,255,255,0.06);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { padding: 0; margin: 0; font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--bg); color: var(--text); }
+
+    #wrapper { display: flex; width: 100%; min-height: 100vh; }
+
+    /* ===== SIDEBAR ===== */
+    #left-sidebar {
+        width: 60px; min-width: 60px; height: 100vh; position: fixed; top: 0; left: 0; z-index: 100;
+        background: #0f172a; color: #94a3b8; display: flex; flex-direction: column;
+        transition: width 0.25s ease, min-width 0.25s ease;
+        overflow: hidden;
+    }
+    #left-sidebar.active { width: 220px; min-width: 220px; }
+
+    .sidebar-brand {
+        height: 52px; display: flex; align-items: center; padding: 0 14px; gap: 2px;
+        border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
+    }
+    .sidebar-brand-icon {
+        width: 32px; height: 32px; min-width: 32px; border-radius: 8px;
+        background: #3b82f6; display: flex; align-items: center; justify-content: center;
+        font-size: 0.85rem; color: white; font-weight: 700;
+    }
+    .sidebar-brand-icon-img { transition: opacity 0.2s; }
+    #left-sidebar.active .sidebar-brand-icon-img { opacity: 0; width: 0 !important; }
+    .sidebar-brand-text { font-weight: 800; font-size: 1.3rem; white-space: nowrap; opacity: 0; transition: opacity 0.2s; color: #fff; }
+    .sidebar-brand-text .twin { color: #3b82f6; }
+    .sidebar-brand-text .ai { color: #94a3b8; font-weight: 600; }
+    #left-sidebar.active .sidebar-brand-text { opacity: 1; }
+
+    .sidebar-toggle {
+        width: 100%; height: 36px; border: none; background: transparent;
+        color: #94a3b8; font-size: 0.75rem; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.2s; border-top: 1px solid rgba(255,255,255,0.06);
+        margin-top: auto; flex-shrink: 0;
+    }
+    .sidebar-toggle:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+
+    .left-nav { padding: 12px 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .left-nav a {
+        display: flex; align-items: center; gap: 12px; padding: 10px 16px; margin: 0 8px;
+        color: #94a3b8; text-decoration: none; border-radius: 8px;
+        transition: all 0.15s; white-space: nowrap; font-size: 0.85rem; font-weight: 500;
+    }
+    .left-nav a:hover { background: rgba(255,255,255,0.06); color: #e2e8f0; text-decoration: none; }
+    .left-nav a.active { background: rgba(59,130,246,0.12); color: #3b82f6; }
+    .left-nav a > i { width: 28px; font-size: 1rem; text-align: center; flex-shrink: 0; }
+    .left-nav a > span { opacity: 0; transition: opacity 0.2s; }
+    #left-sidebar.active .left-nav a > span { opacity: 1; }
+
+    .sidebar-footer {
+        padding: 12px 8px; border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .sidebar-footer a {
+        display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+        color: #94a3b8; text-decoration: none; border-radius: 8px;
+        transition: all 0.15s; white-space: nowrap; font-size: 0.82rem; font-weight: 500;
+    }
+    .sidebar-footer a:hover { background: rgba(239,68,68,0.08); color: #ef4444; text-decoration: none; }
+    .sidebar-footer a > i { width: 28px; font-size: 0.95rem; text-align: center; flex-shrink: 0; }
+    .sidebar-footer a > span { opacity: 0; transition: opacity 0.2s; }
+    #left-sidebar.active .sidebar-footer a > span { opacity: 1; }
+
+    /* ===== RIGHT CONTENT ===== */
+    #right-bar {
+        flex: 1; margin-left: 60px; min-height: 100vh;
+        display: flex; flex-direction: column;
+        transition: margin-left 0.25s ease;
+    }
+    #left-sidebar.active ~ #right-bar { margin-left: 220px; }
+
+    /* Topbar */
+    .topbar {
+        height: 52px; background: var(--topbar-bg); border-bottom: 1px solid var(--topbar-border);
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 24px; position: sticky; top: 0; z-index: 50;
+    }
+    .topbar-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-secondary); }
+    .topbar-breadcrumb a { color: var(--text-secondary); text-decoration: none; transition: color 0.15s; }
+    .topbar-breadcrumb a:hover { color: #3b82f6; text-decoration: none; }
+    .topbar-breadcrumb .breadcrumb-item + .breadcrumb-item::before { content: '›'; color: var(--text-secondary); padding: 0 6px; }
+    .topbar-breadcrumb .breadcrumb-item.active { color: var(--text); font-weight: 600; }
+
+    /* Override bootstrap breadcrumb */
+    .topbar-breadcrumb .breadcrumb { background: none; margin: 0; padding: 0; font-size: 0.82rem; }
+    .topbar-breadcrumb .breadcrumb-item a { color: var(--text-secondary); }
+    .topbar-breadcrumb .breadcrumb-item a:hover { color: #3b82f6; text-decoration: none; }
+    .topbar-breadcrumb .breadcrumb-item.active { color: var(--text); font-weight: 600; }
+    .topbar-breadcrumb .breadcrumb-item + .breadcrumb-item::before { content: '›'; color: #cbd5e1; }
+
+    .topbar-user { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: background 0.15s; }
+    .topbar-user:hover { background: var(--input-bg); }
+    .topbar-username { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    .theme-toggle {
+        width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--card-border);
+        background: var(--input-bg); color: var(--text-secondary); cursor: pointer;
+        display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+        transition: all 0.15s;
+    }
+    .theme-toggle:hover { color: #f59e0b; background: rgba(245,158,11,0.08); }
+    .topbar-avatar {
+        width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white; display: flex; align-items: center; justify-content: center;
+        font-size: 0.75rem; font-weight: 700;
+    }
+    .topbar-dropdown { position: relative; }
+    .topbar-menu {
+        display: none; position: absolute; top: 46px; right: 0;
+        background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.1); min-width: 180px; z-index: 60;
+        overflow: hidden;
+    }
+    .topbar-menu.show { display: block; }
+    .topbar-menu a {
+        display: flex; align-items: center; gap: 8px; padding: 10px 16px; font-size: 0.82rem;
+        color: var(--text); text-decoration: none; transition: background 0.15s;
+    }
+    .topbar-menu a:hover { background: var(--input-bg); text-decoration: none; }
+    .topbar-menu a.logout { color: #ef4444; border-top: 1px solid #f1f5f9; }
+    .topbar-menu a.logout:hover { background: #fef2f2; }
+
+    /* Content area */
+    .content-area { flex: 1; padding: 0; }
+
+    /* Fullscreen image lightbox */
+    .lightbox {
+        display: none; position: fixed; inset: 0; z-index: 10000;
+        background: rgba(0,0,0,0.92); backdrop-filter: blur(8px);
+        align-items: center; justify-content: center; cursor: zoom-out;
+    }
+    .lightbox.show { display: flex; }
+    .lightbox img {
+        max-width: 90vw; max-height: 90vh; border-radius: 8px;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.5); object-fit: contain;
+    }
+    .lightbox .lb-close {
+        position: absolute; top: 20px; right: 24px; background: none; border: none;
+        color: rgba(255,255,255,0.6); font-size: 1.5rem; cursor: pointer;
+    }
+    .lightbox .lb-close:hover { color: #fff; }
+    .lightbox .lb-info {
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+        color: rgba(255,255,255,0.5); font-size: 0.75rem; font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Toast notifications */
+    .toast-container {
+        position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+        display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+    }
+    .toast {
+        background: #0f172a; color: #fff; padding: 10px 16px; border-radius: 8px;
+        font-size: 0.8rem; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        pointer-events: auto; display: flex; align-items: center; gap: 8px;
+        animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+        border-left: 3px solid #3b82f6;
+    }
+    .toast.success { border-left-color: #22c55e; }
+    .toast.error { border-left-color: #ef4444; }
+    @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+
+    /* Hide old breadcrumb style */
+    .breadcrumb-panel { display: none; }
+
+    @media (max-width: 768px) {
+        #left-sidebar { width: 0; min-width: 0; }
+        #left-sidebar.active { width: 220px; min-width: 220px; }
+        #right-bar { margin-left: 0; }
+        #left-sidebar.active ~ #right-bar { margin-left: 0; }
+        .topbar { padding: 0 12px; }
+    }
+    </style>
+
+    {% block style %}{% endblock %}
+</head>
+<body>
+
+<div id="wrapper">
+    <!-- Sidebar -->
+    <nav id="left-sidebar">
+        <div class="sidebar-brand">
+            <img src="{% static 'images/zamintwin_logo.png' %}" alt="Z" class="sidebar-brand-icon-img" style="width:32px;height:auto;object-fit:contain;">
+            <span class="sidebar-brand-text">amin<span class="twin">Twin</span><span class="ai">.ai</span></span>
+        </div>
+        <nav class="left-nav">
+            <a href="{% url 'projects:index' %}"><i class="fa fa-road"></i> <span>Projects</span></a>
+            <a href="{% url 'sessions:city_selector' %}"><i class="fa fa-map-marked-alt"></i> <span>Road Inspection</span></a>
+            <a href="{% url 'reports:index' %}"><i class="fa fa-file-alt"></i> <span>Reports</span></a>
+            <a href="{% url 'accounts:index' %}"><i class="fa fa-users-cog"></i> <span>Settings</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <a href="{% url 'accounts:logout' %}"><i class="fa fa-sign-out-alt"></i> <span>Sign Out</span></a>
+        </div>
+        <button class="sidebar-toggle" id="sidebarToggle"><i class="fa fa-chevron-right"></i></button>
+    </nav>
+
+    <!-- Main content -->
+    <div id="right-bar">
+        <!-- Topbar -->
+        <div class="topbar">
+            <div class="topbar-breadcrumb">
+                <ol class="breadcrumb">
+                    {% block breadcrumb %}{% endblock %}
+                </ol>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+            <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode"><i class="fa fa-moon"></i></button>
+            <div class="topbar-dropdown" id="userDropdown">
+                <div class="topbar-user">
+                    <span class="topbar-username">{% if user.is_authenticated %}{{ user.username }}{% endif %}</span>
+                    <div class="topbar-avatar">{% if user.is_authenticated %}{{ user.username|make_list|first|upper }}{% else %}?{% endif %}</div>
+                </div>
+                <div class="topbar-menu" id="userMenu">
+                    <a href="{% url 'accounts:index' %}"><i class="fa fa-cog" style="color:#94a3b8;"></i> Settings</a>
+                    <a href="{% url 'accounts:logout' %}" class="logout"><i class="fa fa-sign-out-alt"></i> Sign Out</a>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- Toast container -->
+        <div class="toast-container" id="toastContainer"></div>
+
+        <!-- Fullscreen image lightbox -->
+        <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+            <button class="lb-close">&times;</button>
+            <img id="lightboxImg" src="" alt="">
+            <div class="lb-info" id="lightboxInfo"></div>
+        </div>
+
+        <!-- Content -->
+        <div class="content-area">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="{% static 'js/umd_popper.js' %}"></script>
+<script src="{% static 'js/bootstrap.min.js' %}"></script>
+<script>
+$(document).ready(function() {
+    // Sidebar toggle with localStorage persistence
+    var sidebar = $('#left-sidebar');
+    var toggle = $('#sidebarToggle');
+    var isOpen = localStorage.getItem('sidebar_open') === 'true';
+
+    if (isOpen) {
+        sidebar.addClass('active');
+        toggle.find('i').removeClass('fa-chevron-right').addClass('fa-chevron-left');
+    }
+
+    toggle.click(function() {
+        sidebar.toggleClass('active');
+        var open = sidebar.hasClass('active');
+        toggle.find('i').toggleClass('fa-chevron-right', !open).toggleClass('fa-chevron-left', open);
+        localStorage.setItem('sidebar_open', open);
+    });
+
+    // Highlight active nav link
+    var path = window.location.pathname;
+    $('.left-nav a').each(function() {
+        var href = $(this).attr('href');
+        if (path === href || (href !== '/' && path.startsWith(href))) {
+            $(this).addClass('active');
+        }
+    });
+
+    // User dropdown
+    $('#userDropdown').click(function(e) {
+        e.stopPropagation();
+        $('#userMenu').toggleClass('show');
+    });
+    $(document).click(function() { $('#userMenu').removeClass('show'); });
+
+    // Lightbox (global)
+    window.openLightbox = function(src, info) {
+        document.getElementById('lightboxImg').src = src;
+        document.getElementById('lightboxInfo').textContent = info || '';
+        document.getElementById('lightbox').classList.add('show');
+    };
+    window.closeLightbox = function() {
+        document.getElementById('lightbox').classList.remove('show');
+    };
+    $(document).keydown(function(e) { if (e.key === 'Escape') closeLightbox(); });
+
+    // Toast notification helper (global)
+    window.showToast = function(msg, type) {
+        var c = document.getElementById('toastContainer');
+        var t = document.createElement('div');
+        t.className = 'toast ' + (type || '');
+        t.textContent = msg;
+        c.appendChild(t);
+        setTimeout(function() { t.remove(); }, 3000);
+    };
+
+    // Theme toggle
+    var theme = localStorage.getItem('theme') || 'light';
+    if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        $('#themeToggle i').removeClass('fa-moon').addClass('fa-sun');
+    }
+    $('#themeToggle').click(function() {
+        var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (isDark) {
+            document.documentElement.removeAttribute('data-theme');
+            $(this).find('i').removeClass('fa-sun').addClass('fa-moon');
+            localStorage.setItem('theme', 'light');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            $(this).find('i').removeClass('fa-moon').addClass('fa-sun');
+            localStorage.setItem('theme', 'dark');
+        }
+        window.dispatchEvent(new CustomEvent('themeChanged', { detail: { dark: !isDark } }));
+    });
+});
+</script>
+
+{% block scriptBlock %}
+{% endblock %}
+
+</body>
+</html>

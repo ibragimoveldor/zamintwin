@@ -1,0 +1,46 @@
+.top-btn-panel {
+    /*background-color: #eee;*/
+    padding: 10px 15px ;
+    border-bottom: 1px solid #eee;
+    margin: 0 -15px;
+    display: inline-block;
+}
+
+.system-btn {
+    background-color: #2773b4;
+    color: #FFFFFF;
+}
+
+.system-btn:hover {
+    background-color: #23568f;
+    color: #FFFFFF;
+}
+
+.table-photogram td:first-child {
+    width: 40px;
+    text-align: center;
+}
+
+.table-photogram th:nth-child(n+3),
+.table-photogram td:nth-child(n+3) {
+    width: 150px;
+    text-align: center;
+}
+
+.btn-model {
+    color: #fff;
+    font-size: 14px;
+    padding: 3px 10px 5px 10px;
+    border-radius: 3px;
+    transition: ease .5s;
+}
+
+.btn-model:hover {
+    color: #fff;
+    text-decoration: none;
+}
+
+a.project-item {
+    font-size: 16px;
+    text-decoration: underline;
+}

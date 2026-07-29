@@ -1,0 +1,117 @@
+name: zamintwin
+
+services:
+  # --- Nginx Reverse Proxy ---
+  nginx:
+    image: nginx:alpine
+    container_name: zamintwin-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ../pci_web/staticfiles:/app/staticfiles:ro
+      - shared_data:/data/media:ro
+    depends_on:
+      - web
+
+  # --- Infrastructure ---
+  redis:
+    image: redis:7-alpine
+    container_name: zamintwin-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: zamintwin-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: zamintwin_db
+      POSTGRES_USER: zamintwin_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  # --- Django Web App ---
+  web:
+    build:
+      context: ../pci_web
+      dockerfile: Dockerfile
+    container_name: zamintwin-web
+    restart: unless-stopped
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-zamintwin-dev-secret-key}
+      - DEBUG=1
+      - DATABASE_URL=postgres://zamintwin_user:${DB_PASSWORD:-changeme}@postgres:5432/zamintwin_db
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - AI_SERVICE_URL=http://ai-service:8001
+      - MEDIA_ROOT=/data/media
+    volumes:
+      - shared_data:/data/media
+      - ../pci_web:/app
+    ports:
+      - "8080:8000"
+    depends_on:
+      - postgres
+      - redis
+
+  # --- Celery Worker ---
+  celery:
+    build:
+      context: ../pci_web
+      dockerfile: Dockerfile
+    container_name: zamintwin-celery
+    restart: unless-stopped
+    command: celery -A config worker -l info --concurrency=4
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-zamintwin-dev-secret-key}
+      - DATABASE_URL=postgres://zamintwin_user:${DB_PASSWORD:-changeme}@postgres:5432/zamintwin_db
+      - DEBUG=1
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - AI_SERVICE_URL=http://ai-service:8001
+      - MEDIA_ROOT=/data/media
+    volumes:
+      - shared_data:/data/media
+    depends_on:
+      - redis
+      - postgres
+
+  # --- AI Service (GPU) ---
+  ai-service:
+    build:
+      context: ../ai_service
+      dockerfile: Dockerfile
+    container_name: zamintwin-ai
+    restart: unless-stopped
+    environment:
+      - AI_DETECTION_MODEL=/models/n02m.pt
+      - AI_SEGMENTATION_MODEL=/models/crackseg.pth
+      - AI_DEDUCT_VALUES_PATH=/models/PCI/
+      - AI_GPU_ID=0
+      - SHARED_STORAGE=/data/media
+    volumes:
+      - shared_data:/data/media
+      - ./models:/models:ro
+    ports:
+      - "8081:8001"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  redis_data:
+  postgres_data:
+  shared_data:

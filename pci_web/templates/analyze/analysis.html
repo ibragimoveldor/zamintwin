@@ -1,0 +1,588 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ project.name }} | PCI Assessment{% endblock %}
+
+{% block style %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+:root {
+    --pci-good: #22c55e;
+    --pci-satisfactory: #84cc16;
+    --pci-fair: #eab308;
+    --pci-poor: #f97316;
+    --pci-very-poor: #ef4444;
+    --pci-serious: #dc2626;
+    --pci-failed: #991b1b;
+    --pci-none: #a3e635;
+    --bg-card: #ffffff;
+    --bg-page: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --border: #e2e8f0;
+    --accent: #3b82f6;
+}
+.pci-dash { font-family: 'DM Sans', sans-serif; background: var(--bg-page); }
+.pci-dash * { box-sizing: border-box; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* ===== TOP STATS BAR ===== */
+.top-stats {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-radius: 12px; padding: 16px 24px; color: white;
+    display: flex; align-items: center; gap: 32px; flex-wrap: wrap;
+}
+.top-stat { text-align: center; min-width: 120px; }
+.top-stat-value { font-size: 1.8rem; font-weight: 700; line-height: 1.2; }
+.top-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; margin-top: 2px; }
+.top-stat-divider { width: 1px; height: 40px; background: rgba(255,255,255,0.15); }
+.top-condition-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; flex: 1; min-width: 200px; }
+.top-condition-bar div { transition: width 0.5s ease; }
+.top-actions { display: flex; gap: 8px; margin-left: auto; }
+.top-actions a {
+    padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 600;
+    text-decoration: none; transition: opacity 0.2s;
+}
+.top-actions a:hover { opacity: 0.85; text-decoration: none; }
+.btn-csv { background: #3b82f6; color: white; }
+.btn-map { background: #059669; color: white; }
+
+/* ===== CARDS ===== */
+.card-s { background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+.card-s-head {
+    padding: 10px 14px; font-weight: 600; font-size: 0.85rem;
+    border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;
+}
+.card-s-head i { color: var(--accent); margin-right: 6px; font-size: 0.8rem; }
+.card-s-body { padding: 12px 14px; }
+
+/* ===== TILE STRIP ===== */
+.tile-strip-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+.tile-strip-nav { display: flex; align-items: center; gap: 6px; }
+.tile-strip-btn {
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; color: var(--text-secondary); transition: all 0.2s; flex-shrink: 0;
+}
+.tile-strip-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+.tile-strip {
+    display: flex; gap: 1px; overflow-x: auto; flex: 1; padding: 4px 0;
+    scrollbar-width: none; -ms-overflow-style: none;
+}
+.tile-strip::-webkit-scrollbar { display: none; }
+.tile-block {
+    flex-shrink: 0; width: 60px; height: 28px; border-radius: 2px;
+    cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+    position: relative; border: 1px solid transparent;
+}
+.tile-block:hover { transform: scaleX(1.1); z-index: 2; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+.tile-block.active { border-color: #0f172a; transform: scaleX(1.15); z-index: 3; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.tile-block .tile-tip {
+    display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    background: #0f172a; color: white; padding: 3px 8px; border-radius: 4px;
+    font-size: 0.65rem; white-space: nowrap; margin-bottom: 4px; font-weight: 600; z-index: 10;
+}
+.tile-block:hover .tile-tip, .tile-block.active .tile-tip { display: block; }
+.tile-km-track {
+    position: relative; height: 18px; white-space: nowrap;
+    font-size: 0.6rem; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace;
+    overflow: hidden;
+}
+.tile-km-track .km-mark {
+    position: absolute; top: 0; transform: translateX(-50%);
+    text-align: center;
+}
+.tile-km-track .km-mark::before {
+    content: ''; display: block; width: 1px; height: 6px;
+    background: #94a3b8; margin: 0 auto 1px;
+}
+
+/* ===== MAP ===== */
+#roadMap { height: 220px; border-radius: 8px; position: relative; z-index: 1; }
+.pci-dash #map { height: auto; width: auto; }
+
+/* ===== RESULTS TABLE ===== */
+.res-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; }
+.res-table th {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-secondary); font-weight: 600; padding: 8px 10px;
+    border-bottom: 2px solid var(--border); position: sticky; top: 0; background: white; z-index: 1;
+}
+.res-table td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.res-table tbody tr { cursor: pointer; transition: background 0.12s; }
+.res-table tbody tr:hover { background: #f8fafc; }
+.res-table tbody tr.active-row { background: #eff6ff; }
+
+/* ===== CONDITION BADGE ===== */
+.cond-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
+.cond-good { background: #dcfce7; color: #166534; }
+.cond-satisfactory { background: #ecfccb; color: #3f6212; }
+.cond-fair { background: #fef9c3; color: #854d0e; }
+.cond-poor { background: #ffedd5; color: #9a3412; }
+.cond-verypoor { background: #fee2e2; color: #991b1b; }
+.cond-serious { background: #fecaca; color: #7f1d1d; }
+.cond-failed { background: #991b1b; color: white; }
+.cond-notdamaged { background: #f0fdf4; color: #166534; }
+
+/* PCI inline bar */
+.pci-bar { width: 60px; height: 5px; background: #e2e8f0; border-radius: 3px; display: inline-block; vertical-align: middle; margin-left: 6px; }
+.pci-bar-fill { height: 100%; border-radius: 3px; }
+
+/* ===== DETAIL PANEL ===== */
+.detail-img-box {
+    background: #0f172a; border-radius: 6px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center; min-height: 200px;
+    cursor: pointer; position: relative;
+}
+.detail-img-box img { max-width: 100%; max-height: 400px; object-fit: contain; transform: rotate(90deg); }
+.detail-img-box .zoom-hint {
+    position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.6);
+    color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem;
+    opacity: 0; transition: opacity 0.2s;
+}
+.detail-img-box:hover .zoom-hint { opacity: 1; }
+.detail-tbl td, .detail-tbl th { padding: 6px 10px; font-size: 0.8rem; }
+.detail-tbl th { color: var(--text-secondary); font-weight: 500; width: 42%; }
+.detail-tbl td { font-weight: 600; }
+.detail-tbl tr { border-bottom: 1px solid #f1f5f9; }
+
+/* ===== FULLSCREEN IMAGE MODAL ===== */
+.img-modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+    z-index: 9999; cursor: zoom-out; align-items: center; justify-content: center;
+}
+.img-modal-backdrop.show { display: flex; }
+.img-modal-backdrop img {
+    max-width: 95vh; max-height: 90vw; object-fit: contain;
+    border-radius: 4px; box-shadow: 0 0 60px rgba(0,0,0,0.5);
+    transform: rotate(90deg);
+}
+.img-modal-info {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.7); color: white; padding: 8px 20px; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 600; z-index: 10000; white-space: nowrap;
+}
+.img-modal-close {
+    position: fixed; top: 16px; right: 20px; color: white; font-size: 1.5rem;
+    cursor: pointer; z-index: 10000; opacity: 0.7; transition: opacity 0.2s;
+    background: none; border: none;
+}
+.img-modal-close:hover { opacity: 1; }
+.img-modal-nav {
+    position: fixed; top: 50%; transform: translateY(-50%); color: white;
+    font-size: 2rem; cursor: pointer; z-index: 10000; opacity: 0.5; transition: opacity 0.2s;
+    background: none; border: none; padding: 20px;
+}
+.img-modal-nav:hover { opacity: 1; }
+.img-modal-prev { left: 10px; }
+.img-modal-next { right: 10px; }
+.img-modal-pci {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    padding: 8px 24px; border-radius: 10px; z-index: 10000;
+    font-size: 1.4rem; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+    color: white; text-align: center; line-height: 1.2;
+}
+.img-modal-pci small { display: block; font-size: 0.7rem; font-weight: 500; opacity: 0.8; letter-spacing: 0.05em; }
+
+/* ===== INSIGHTS PANEL ===== */
+.insight-item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+    border-bottom: 1px solid #f1f5f9; cursor: pointer; transition: background 0.12s;
+}
+.insight-item:hover { background: #fef2f2; }
+.insight-item:last-child { border-bottom: none; }
+.insight-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.insight-name { font-size: 0.8rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.insight-val { font-size: 0.8rem; font-weight: 700; }
+
+/* ===== CHART ===== */
+.chart-box { position: relative; height: 150px; }
+
+@media (max-width: 992px) {
+    .top-stats { gap: 16px; padding: 12px 16px; }
+    .top-stat-value { font-size: 1.4rem; }
+    #roadMap { height: 240px; }
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">Projects</a></li>
+    <li class="breadcrumb-item active">{{ project.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="pci-dash">
+<div class="container-fluid px-3 py-2">
+
+    {# ===== TOP STATS BAR ===== #}
+    <div class="top-stats mb-2">
+        <div class="top-stat">
+            <div class="top-stat-value mono" id="totalKm">—</div>
+            <div class="top-stat-label">Total Length</div>
+        </div>
+        <div class="top-stat-divider"></div>
+        <div class="top-stat">
+            <div class="top-stat-value mono">{{ details|length }}</div>
+            <div class="top-stat-label">Tiles (10m)</div>
+        </div>
+        <div class="top-stat-divider"></div>
+        <div class="top-stat">
+            <div class="top-stat-value mono" id="avgPci">—</div>
+            <div class="top-stat-label">Avg PCI</div>
+        </div>
+        <div class="top-stat-divider"></div>
+        <div style="flex:1; min-width:180px;">
+            <div class="top-stat-label mb-1">Overall Condition</div>
+            <div class="top-condition-bar" id="topCondBar"></div>
+        </div>
+        <div class="top-actions">
+            <a href="{% url 'analysis:export_pdf' project.id %}" class="btn-csv" style="background:#dc2626;"><i class="fa fa-file-pdf"></i> PDF</a>
+            <a href="{% url 'analysis:download' project.id %}" class="btn-csv"><i class="fa fa-download"></i> CSV</a>
+            <a href="{% url 'analysis:mapview' project.id %}" class="btn-map"><i class="fa fa-map"></i> Map</a>
+        </div>
+    </div>
+
+    {# ===== TILE STRIP ===== #}
+    <div class="card-s mb-2">
+        <div class="card-s-body py-2">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <div class="tile-strip-label" id="tileStripLabel">Road Section — {{ project.name }}</div>
+                <div style="display:flex;gap:6px;align-items:center;font-size:0.65rem;color:var(--text-secondary);">
+                    <span style="width:10px;height:10px;background:var(--pci-good);border-radius:2px;display:inline-block;"></span>Good
+                    <span style="width:10px;height:10px;background:var(--pci-fair);border-radius:2px;display:inline-block;margin-left:4px;"></span>Fair
+                    <span style="width:10px;height:10px;background:var(--pci-poor);border-radius:2px;display:inline-block;margin-left:4px;"></span>Poor
+                    <span style="width:10px;height:10px;background:var(--pci-very-poor);border-radius:2px;display:inline-block;margin-left:4px;"></span>Severe
+                </div>
+            </div>
+            <div class="tile-strip-nav">
+                <button class="tile-strip-btn" id="stripPrev"><i class="fa fa-chevron-left"></i></button>
+                <div style="flex:1; position:relative; overflow:hidden;">
+                    <div style="position:absolute; top:50%; left:0; right:0; height:2px; background:repeating-linear-gradient(90deg,#cbd5e1 0,#cbd5e1 8px,transparent 8px,transparent 16px); transform:translateY(-50%); z-index:0;"></div>
+                    <div class="tile-strip" id="tileStrip">
+                        {% for img_file, detail in fullist %}
+                        <div class="tile-block" data-idx="{{ forloop.counter0 }}">
+                            <div class="tile-tip">Section {{ forloop.counter }} — PCI {{ detail.pci_rating|floatformat:0 }}% — {{ detail.pav_condition }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="tile-km-track" id="kmMarkers"></div>
+                </div>
+                <button class="tile-strip-btn" id="stripNext"><i class="fa fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    {# ===== TABLE + INSIGHTS (left) | MAP + DETAIL (right) ===== #}
+    <div class="row mb-2">
+        {# Left column: Table + Insights + Charts #}
+        <div class="col-lg-7 mb-2">
+            <div class="card-s mb-2">
+                <div class="card-s-head">
+                    <span><i class="fa fa-exclamation-triangle" style="color:#ef4444;"></i> Damage Insights</span>
+                    <span class="mono" style="font-size:0.7rem;color:var(--text-secondary);" id="damagedCount"></span>
+                </div>
+                <div style="max-height:130px;overflow-y:auto;" id="insightsList"></div>
+            </div>
+            <div class="card-s mb-2">
+                <div class="card-s-head">
+                    <span><i class="fa fa-table"></i> Section Results</span>
+                    <span class="mono" style="font-size:0.75rem;color:var(--text-secondary);">{{ details|length }} tiles</span>
+                </div>
+                <div style="max-height:300px;overflow-y:auto;">
+                    <table class="res-table">
+                        <thead><tr><th>#</th><th>Section</th><th>PCI</th><th>Condition</th><th>Defects</th></tr></thead>
+                        <tbody id="resBody">
+                            {% for img_file, detail in fullist %}
+                            <tr data-idx="{{ forloop.counter0 }}">
+                                <td class="text-muted">{{ forloop.counter }}</td>
+                                <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ img_file }}">{{ img_file }}</td>
+                                <td>
+                                    <span class="mono" style="font-weight:600;">{{ detail.pci_rating|floatformat:0 }}</span>
+                                    <div class="pci-bar"><div class="pci-bar-fill" style="width:{{ detail.pci_rating }}%;background:{% if detail.pci_rating > 85 %}var(--pci-good){% elif detail.pci_rating > 70 %}var(--pci-satisfactory){% elif detail.pci_rating > 55 %}var(--pci-fair){% elif detail.pci_rating > 40 %}var(--pci-poor){% else %}var(--pci-very-poor){% endif %};"></div></div>
+                                </td>
+                                <td><span class="cond-badge cond-{{ detail.pav_condition|lower|cut:' ' }}">{{ detail.pav_condition }}</span></td>
+                                <td class="mono" style="font-size:0.75rem;">
+                                    {% if detail.crack_len > 0 %}L:{{ detail.crack_len|floatformat:1 }}m{% endif %}
+                                    {% if detail.alr_area > 0 %} A:{{ detail.alr_area|floatformat:1 }}{% endif %}
+                                    {% if detail.patching_area > 0 %} P:{{ detail.patching_area|floatformat:1 }}{% endif %}
+                                    {% if detail.pothole_area > 0 %} H:{{ detail.pothole_area|floatformat:1 }}{% endif %}
+                                    {% if detail.crack_len == 0 and detail.alr_area == 0 and detail.patching_area == 0 and detail.pothole_area == 0 %}—{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-2">
+                    <div class="card-s">
+                        <div class="card-s-head"><span><i class="fa fa-chart-pie"></i> Condition Distribution</span></div>
+                        <div class="card-s-body">
+                            <div class="chart-box"><canvas id="condChart"></canvas></div>
+                            <div id="condLegend" class="mt-1"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <div class="card-s">
+                        <div class="card-s-head"><span><i class="fa fa-chart-bar"></i> Defect Types</span></div>
+                        <div class="card-s-body"><div class="chart-box"><canvas id="crackChart"></canvas></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Right column: Map + Tile Detail #}
+        <div class="col-lg-5 mb-2">
+            <div class="card-s mb-2">
+                <div class="card-s-head">
+                    <span><i class="fa fa-map-marked-alt"></i> Assessment Map</span>
+                    <small class="text-muted" style="font-size:0.75rem;">Click markers for details</small>
+                </div>
+                <div class="card-s-body p-1">
+                    <div id="roadMap"></div>
+                </div>
+            </div>
+            <div class="card-s" id="detailPanel">
+                <div class="card-s-head">
+                    <span><i class="fa fa-search-plus"></i> Tile Detail</span>
+                    <span class="mono" style="font-size:0.75rem;" id="detailTitle">Select a tile</span>
+                </div>
+                <div class="card-s-body">
+                    <div class="detail-img-box mb-2" id="detailImgResult" title="Click to view fullscreen">
+                        <div class="text-center py-4" style="color:rgba(255,255,255,0.4);">
+                            <i class="fa fa-hand-pointer" style="font-size:1.5rem;"></i>
+                            <p class="mt-1 mb-0" style="font-size:0.8rem;">Click a tile to inspect</p>
+                        </div>
+                        <div class="zoom-hint"><i class="fa fa-expand"></i> Click to zoom</div>
+                    </div>
+                    <table class="detail-tbl w-100" id="detailTbl" style="display:none;">
+                        <tr><th><i class="fa fa-heartbeat text-info"></i> Condition</th><td id="dtCond">—</td></tr>
+                        <tr><th><i class="fa fa-percentage text-primary"></i> PCI</th><td id="dtPci" class="mono">—</td></tr>
+                        <tr><th><i class="fa fa-ruler text-warning"></i> Crack Length</th><td id="dtCrack" class="mono">—</td></tr>
+                        <tr><th><i class="fa fa-th text-danger"></i> Alligator</th><td id="dtAlr" class="mono">—</td></tr>
+                        <tr><th><i class="fa fa-band-aid text-success"></i> Patching</th><td id="dtPatch" class="mono">—</td></tr>
+                        <tr><th><i class="fa fa-circle text-dark"></i> Pothole</th><td id="dtPot" class="mono">—</td></tr>
+                        <tr><th><i class="fa fa-map-pin text-info"></i> GPS</th><td id="dtGps" class="mono" style="font-size:0.75rem;">—</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div>
+
+{# ===== FULLSCREEN IMAGE VIEWER ===== #}
+<div class="img-modal-backdrop" id="imgModal">
+    <button class="img-modal-close" id="imgModalClose"><i class="fa fa-times"></i></button>
+    <button class="img-modal-nav img-modal-prev" id="imgModalPrev"><i class="fa fa-chevron-left"></i></button>
+    <button class="img-modal-nav img-modal-next" id="imgModalNext"><i class="fa fa-chevron-right"></i></button>
+    <img src="" id="imgModalImg" alt="">
+    <div class="img-modal-info" id="imgModalInfo"></div>
+    <div class="img-modal-pci" id="imgModalPci"></div>
+</div>
+
+{{ details|json_script:'details-data' }}
+{% endblock %}
+
+{% block scriptBlock %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+$(document).ready(function() {
+    var details = JSON.parse($('#details-data').html());
+    var imagePath = '/media/{{ image_path }}';
+    var images = [{% for img, d in fullist %}'{{ img }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+
+    function pciColor(pci) {
+        if (pci >= 100) return '#22c55e';
+        if (pci > 85) return '#22c55e';
+        if (pci > 70) return '#84cc16';
+        if (pci > 55) return '#eab308';
+        if (pci > 40) return '#f97316';
+        if (pci > 25) return '#ef4444';
+        if (pci > 10) return '#dc2626';
+        if (pci === 0) return '#22c55e';
+        return '#991b1b';
+    }
+    function condClass(c) { return 'cond-' + c.toLowerCase().replace(/\s+/g, ''); }
+    function parseGPS(name) {
+        try {
+            var p = name.split('_');
+            var lat = parseFloat(p[3]), lng = parseFloat(p[4]);
+            if (isNaN(lat)||isNaN(lng)||lat<-90||lat>90||lng<-180||lng>180) return null;
+            return {lat:lat, lng:lng};
+        } catch(e) { return null; }
+    }
+
+    // ===== TOP STATS =====
+    var totalPci=0, damaged=0;
+    details.forEach(function(d) { totalPci+=d.pci_rating; if(d.pav_condition!=='Not Damaged'&&d.pav_condition!=='Good') damaged++; });
+    var avg = details.length ? totalPci/details.length : 0;
+    $('#avgPci').text(avg.toFixed(1)+'%');
+    $('#totalKm').text((details.length*10/1000).toFixed(2)+' km');
+    $('#damagedCount').text(damaged+' affected');
+
+    // Condition bar
+    var condCounts={};
+    var condOrder=['Good','Satisfactory','Not Damaged','Fair','Poor','Very Poor','Serious','Failed'];
+    var condColors={'Good':'#22c55e','Satisfactory':'#84cc16','Not Damaged':'#a3e635','Fair':'#eab308','Poor':'#f97316','Very Poor':'#ef4444','Serious':'#dc2626','Failed':'#991b1b'};
+    details.forEach(function(d) { condCounts[d.pav_condition]=(condCounts[d.pav_condition]||0)+1; });
+    var barH='';
+    condOrder.forEach(function(c) { if(condCounts[c]) { barH+='<div style="width:'+(condCounts[c]/details.length*100)+'%;background:'+condColors[c]+'" title="'+c+': '+condCounts[c]+'"></div>'; }});
+    $('#topCondBar').html(barH);
+
+    // ===== TILE STRIP =====
+    $('.tile-block').each(function(i) {
+        if(i<details.length) $(this).css('background', pciColor(details[i].pci_rating));
+    });
+    // KM markers - pixel-aligned to tile blocks
+    // Each tile-block is 50px + 1px gap = 51px per 10m
+    var TILE_PX = 61; // 60px width + 1px gap
+    var markerStep = 10; // every 10m
+    var kmH = '';
+    for (var m = 0; m <= details.length * 10; m += markerStep) {
+        var tileIdx = m / 10;
+        var px = tileIdx * TILE_PX;
+        var label = m >= 1000 ? (m/1000).toFixed(m%1000===0?0:1)+'km' : m+'m';
+        kmH += '<span class="km-mark" style="left:'+px+'px;">'+label+'</span>';
+    }
+    $('#kmMarkers').html(kmH);
+
+    // Sync km markers scroll with tile strip
+    var strip = document.getElementById('tileStrip');
+    var kmTrack = document.getElementById('kmMarkers');
+    strip.addEventListener('scroll', function() {
+        kmTrack.scrollLeft = strip.scrollLeft;
+    });
+    // Set km track to same total width as strip content
+    var totalWidth = details.length * TILE_PX;
+    kmTrack.style.width = strip.parentElement.offsetWidth + 'px';
+    kmTrack.style.overflow = 'hidden';
+
+    $('#stripPrev').click(function(){strip.scrollBy({left:-200,behavior:'smooth'});});
+    $('#stripNext').click(function(){strip.scrollBy({left:200,behavior:'smooth'});});
+
+    // ===== DAMAGE INSIGHTS =====
+    var sorted=details.map(function(d,i){return{d:d,i:i};})
+        .filter(function(x){return x.d.pav_condition!=='Not Damaged'&&x.d.pav_condition!=='Good'&&x.d.pav_condition!=='Satisfactory';})
+        .sort(function(a,b){return a.d.pci_rating-b.d.pci_rating;});
+    var insH='';
+    if(!sorted.length) insH='<div class="p-3 text-center text-muted" style="font-size:0.85rem;"><i class="fa fa-check-circle text-success"></i> No severe damage detected</div>';
+    else sorted.slice(0,8).forEach(function(x){
+        insH+='<div class="insight-item" data-idx="'+x.i+'"><div class="insight-dot" style="background:'+pciColor(x.d.pci_rating)+'"></div><div class="insight-name">Section '+(x.i+1)+'</div><span class="cond-badge '+condClass(x.d.pav_condition)+'">'+x.d.pav_condition+'</span><div class="insight-val mono">'+x.d.pci_rating.toFixed(0)+'%</div></div>';
+    });
+    $('#insightsList').html(insH);
+    $('#insightsList').on('click','.insight-item',function(){selectSection(parseInt($(this).data('idx')));});
+
+    // ===== MAP =====
+    var map=L.map('roadMap');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+    var markers=[],bounds=[],polyPts=[];
+    details.forEach(function(d,idx){
+        var gps=parseGPS(d.img_name);
+        if(gps){
+            bounds.push([gps.lat,gps.lng]); polyPts.push([gps.lat,gps.lng]);
+            var m=L.circleMarker([gps.lat,gps.lng],{radius:7,fillColor:pciColor(d.pci_rating),color:'#fff',weight:2,fillOpacity:0.9}).addTo(map);
+            m.bindTooltip('<b>PCI: '+d.pci_rating.toFixed(0)+'%</b><br>'+d.pav_condition,{direction:'top',offset:[0,-8]});
+            m.on('click',function(){selectSection(idx);});
+            markers.push({m:m,idx:idx});
+        }
+    });
+    if(polyPts.length>1) L.polyline(polyPts,{color:'#3b82f6',weight:3,opacity:0.4,dashArray:'6 4'}).addTo(map);
+    if(bounds.length>0) map.fitBounds(bounds,{padding:[20,20]}); else map.setView([37.26,127.65],12);
+    setTimeout(function(){map.invalidateSize();},300);
+
+    // ===== CHARTS =====
+    var cL=[],cD=[],cC=[];
+    condOrder.forEach(function(c){if(condCounts[c]){cL.push(c);cD.push(condCounts[c]);cC.push(condColors[c]);}});
+    if(cL.length){
+        new Chart(document.getElementById('condChart'),{type:'doughnut',data:{labels:cL,datasets:[{data:cD,backgroundColor:cC,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false}}}});
+        var lH='';cL.forEach(function(l,i){lH+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><div style="width:10px;height:10px;border-radius:2px;background:'+cC[i]+';flex-shrink:0;"></div><span style="font-size:0.78rem;flex:1;">'+l+'</span><span class="mono" style="font-size:0.78rem;font-weight:600;">'+cD[i]+'</span></div>';});
+        $('#condLegend').html(lH);
+    }
+    var ct=[0,0,0,0];
+    details.forEach(function(d){if(d.crack_len>0)ct[0]++;if(d.alr_area>0)ct[1]++;if(d.patching_area>0)ct[2]++;if(d.pothole_area>0)ct[3]++;});
+    new Chart(document.getElementById('crackChart'),{type:'bar',data:{labels:['Cracks','Alligator','Patching','Pothole'],datasets:[{data:ct,backgroundColor:['#ef4444','#3b82f6','#eab308','#8b5cf6'],borderRadius:4,barPercentage:0.6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{stepSize:1}},y:{grid:{display:false}}}}});
+
+    // ===== SECTION SELECTION =====
+    var activeIdx = -1;
+    function selectSection(idx){
+        if(idx<0||idx>=details.length) return;
+        activeIdx = idx;
+        var d=details[idx], img=images[idx]||'';
+        $('#detailImgResult').html('<img src="'+imagePath+img+'" alt="Result"><div class="zoom-hint"><i class="fa fa-expand"></i> Click to zoom</div>');
+        $('#detailTbl').show();
+        $('#detailTitle').text('Tile '+(idx+1)+' / '+details.length);
+        $('#dtCond').html('<span class="cond-badge '+condClass(d.pav_condition)+'">'+d.pav_condition+'</span>');
+        $('#dtPci').text(d.pci_rating.toFixed(1)+'%');
+        $('#dtCrack').text(d.crack_len>0?d.crack_len.toFixed(2)+' m':'None');
+        $('#dtAlr').text(d.alr_area>0?d.alr_area.toFixed(2)+' m²':'None');
+        $('#dtPatch').text(d.patching_area>0?d.patching_area.toFixed(2)+' m²':'None');
+        $('#dtPot').text(d.pothole_area>0?d.pothole_area.toFixed(2)+' m²':'None');
+        var gps=parseGPS(d.img_name);
+        $('#dtGps').text(gps?gps.lat.toFixed(6)+', '+gps.lng.toFixed(6):'N/A');
+        markers.forEach(function(mk){mk.m.setStyle({weight:mk.idx===idx?3:2,radius:mk.idx===idx?11:7});if(mk.idx===idx)mk.m.openTooltip();});
+        if(gps) map.panTo([gps.lat,gps.lng],{animate:true});
+        $('#resBody tr').removeClass('active-row');
+        $('#resBody tr[data-idx="'+idx+'"]').addClass('active-row');
+        var row=document.querySelector('#resBody tr[data-idx="'+idx+'"]');
+        if(row) row.scrollIntoView({behavior:'smooth',block:'nearest'});
+        $('.tile-block').removeClass('active');
+        $('.tile-block[data-idx="'+idx+'"]').addClass('active');
+        var tile=document.querySelector('.tile-block[data-idx="'+idx+'"]');
+        if(tile) tile.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});
+    }
+    $('#resBody').on('click','tr',function(){selectSection(parseInt($(this).data('idx')));});
+    // Tile strip click → open fullscreen directly
+    $('.tile-block').on('click',function(){
+        var idx = parseInt($(this).data('idx'));
+        selectSection(idx);
+        openFullscreen(idx);
+    });
+
+    // ===== FULLSCREEN IMAGE VIEWER =====
+    function updateModalContent(idx) {
+        var img=images[idx]||'', d=details[idx];
+        $('#imgModalImg').attr('src', imagePath+img);
+        $('#imgModalInfo').text('Section '+(idx+1)+' of '+details.length+' — '+d.pav_condition);
+        $('#imgModalPci').html(d.pci_rating.toFixed(1)+'%<small>PCI Score</small>');
+        $('#imgModalPci').css('background', pciColor(d.pci_rating));
+    }
+    function openFullscreen(idx) {
+        if(idx<0||idx>=details.length) return;
+        updateModalContent(idx);
+        $('#imgModal').addClass('show');
+        $('body').css('overflow','hidden');
+    }
+    $('#detailImgResult').on('click', function(){
+        if(activeIdx>=0) openFullscreen(activeIdx);
+    });
+    function closeModal(){ $('#imgModal').removeClass('show'); $('body').css('overflow',''); }
+    $('#imgModalClose').click(closeModal);
+    $('#imgModal').click(function(e){ if(e.target===this) closeModal(); });
+    function navModal(dir) {
+        var next = activeIdx + dir;
+        if(next>=0 && next<details.length) {
+            selectSection(next);
+            updateModalContent(next);
+        }
+    }
+    $(document).keydown(function(e){
+        if(!$('#imgModal').hasClass('show')) return;
+        if(e.key==='Escape') closeModal();
+        if(e.key==='ArrowLeft') navModal(-1);
+        if(e.key==='ArrowRight') navModal(1);
+    });
+    $('#imgModalPrev').click(function(e){ e.stopPropagation(); navModal(-1); });
+    $('#imgModalNext').click(function(e){ e.stopPropagation(); navModal(1); });
+
+    if(details.length>0) selectSection(0);
+});
+</script>
+{% endblock %}

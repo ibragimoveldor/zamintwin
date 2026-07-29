@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+
+{# Page title block#}
+{% block title %}
+    Accounts
+{% endblock %}
+
+{# Page breadcrumb block#}
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">Home</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Account Control</li>
+{% endblock %}
+
+{# Page content block#}
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-12">
+                {% if success %}
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        {{ success }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                {% endif %}
+                {% if error %}
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        <strong>Warning!</strong> {{ error }}
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Left content -->
+            <div class="col-md-9 border-right">
+
+                <!-- User table  -->
+                <table class="table table-hover table-bordered table-sm user-list">
+                    <thead class="thead-light">
+                    <tr>
+                        <th>
+                            <div class="custom-control custom-checkbox">
+                                <input type="checkbox" class="custom-control-input" id="customCheck">
+                                <label for="customCheck" class="custom-control-label"> Username </label>
+                            </div>
+                        </th>
+                        <th> Display Name</th>
+                        <th> E-mail</th>
+                        <th> User status</th>
+                        <th> Last Seen</th>
+                        <th> Created</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    {% for account in accounts_list %}
+                        <tr>
+                            <td>
+                                <div class="custom-control custom-checkbox">
+                                    <input type="checkbox" class="custom-control-input" id="userCheck3">
+                                    <label for="userCheck3" class="custom-control-label"></label>
+                                    <img src="../static/images/user.png" alt="User image">
+                                    <a href="#">{{ account.username }}</a>
+                                </div>
+                            </td>
+                            <td>{{ account.first_name }} {{ account.last_name }}</td>
+                            <td>{{ account.email }}</td>
+                            <td>
+                                {% if account.is_active %}
+                                    <span class="active">active</span>
+                                {% else %}
+                                    <span class="deactive">Not active</span>
+                                {% endif %}
+
+                                {% if account.is_superuser %}
+                                    <span class="admin"> admin </span>
+                                {% else %}
+                                    <span class="manager">manager</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ account.last_login }}</td>
+                            <td>{{ account.date_joined }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+
+                <!-- Folder Pagination -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <nav aria-label="Page navigation example" class="float-right">
+                            <ul class="pagination">
+                                <li class="page-item">
+                                    <a class="page-link" href="#" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                <li class="page-item">
+                                    <a class="page-link" href="#" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right content -->
+            <div class="col-md-3">
+                <!-- Right menu -->
+                <div class="card border-primary">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs " role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link active" data-toggle="tab" href="#userSection">Users</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-toggle="tab" href="#settingSection"> Settings </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content">
+                            <div class="tab-pane container active" id="userSection"><br>
+                                <h5 class="card-title"> System users </h5>
+
+                                <button type="button" class="btn btn-sm btn-primary" data-toggle="modal"
+                                        data-target=".bd-example-modal-xl">
+                                    <i class="fa fa-user-plus"></i> Create Account
+                                </button>
+
+                                <div class="modal fade bd-example-modal-xl" tabindex="-1" role="dialog"
+                                     aria-labelledby="myExtraLargeModalLabel"
+                                     aria-hidden="true">
+                                    <div class="modal-dialog ">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="folderModalLabel"> Create new account </h5>
+                                                <button type="button" class="close" data-dismiss="modal"
+                                                        aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <br>
+                                                <form method="post">
+                                                    {% csrf_token %}
+                                                    <div class="form-group">
+                                                        <img src="../static/images/user.png" alt="User"
+                                                             class="float-left">
+                                                        <label for="user-image"><i class="fa fa-plus"></i> Upload
+                                                        </label>
+                                                        <input type="file" id="user-image"
+                                                               accept="image/jpeg, image/png">
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="username">Username</label>
+                                                        {{ form.username }}
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="nickname">Fullname</label>
+                                                        {{ form.nickname }}
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="email">E-mail</label>
+                                                        {{ form.email }}
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label for="user-type">User type</label>
+                                                        <select name="user_type" id="user-type" class="custom-select">
+                                                            <option value="">Select user type</option>
+                                                            <option value="1"> Administrator</option>
+                                                            <option value="2"> Manager</option>
+                                                            <option value="3"> User</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary btn-sm"
+                                                                data-dismiss="modal"><i
+                                                                class="far fa-window-close"></i> Cancel
+                                                        </button>
+                                                        <button type="submit" class="btn btn-primary btn-sm"><i
+                                                                class="fa fa-user-plus"></i> Create
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                                <br>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr>
+                                <h5 class="card-title">Special title treatment</h5>
+                                <p class="card-text">With supporting text below as a natural lead-in to additional
+                                    content.</p>
+                            </div>
+                            <div class="tab-pane container fade" id="settingSection"><br>
+                                <h5 class="card-title"> Account settings </h5>
+
+                                <hr>
+
+                                <h5 class="card-title">Special title treatment</h5>
+                                <p class="card-text">With supporting text below as a natural lead-in to additional
+                                    content.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{# Page Script block #}
+{% block scriptBlock %}
+    <script>
+        // Account checkbox list controller
+        $('#customCheck').on('change', function () {
+            let checkList = $('.custom-control-input');
+            let sts = $(this).prop('checked');
+            $.each(checkList, function (i, checkBox) {
+                $(checkBox).prop('checked', sts);
+            });
+        });
+    </script>
+{% endblock %}
+

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Road Inspection{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Road Inspection</li>
+{% endblock %}
+
+{% block style %}
+<style>
+.content-area { overflow: auto !important; height: calc(100vh - 52px) !important; }
+.city-page { padding: 32px; max-width: 1200px; margin: 0 auto; }
+.city-header { margin-bottom: 32px; }
+.city-header h2 { font-size: 1.6rem; font-weight: 800; color: var(--text); margin-bottom: 6px; }
+.city-header p { font-size: 0.9rem; color: var(--text-secondary); }
+.city-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+
+.city-card {
+    background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px;
+    padding: 24px; cursor: pointer; transition: all 0.2s; text-decoration: none; color: inherit;
+    display: flex; flex-direction: column; gap: 12px;
+}
+.city-card:hover {
+    border-color: #3b82f6; transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(59,130,246,0.12); text-decoration: none; color: inherit;
+}
+.city-name { font-size: 1.2rem; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 10px; }
+.city-icon {
+    width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+}
+.city-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.city-stat {
+    background: var(--input-bg); border-radius: 8px; padding: 8px 10px;
+}
+.city-stat .label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); font-weight: 600; }
+.city-stat .value { font-size: 1rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-top: 2px; color: var(--text); }
+.city-enter {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px; border-radius: 8px; background: rgba(59,130,246,0.08);
+    color: #3b82f6; font-size: 0.8rem; font-weight: 600;
+}
+
+/* Add city card */
+.add-city-card {
+    background: transparent; border: 2px dashed var(--card-border); border-radius: 14px;
+    padding: 24px; cursor: pointer; transition: all 0.2s; text-decoration: none;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    min-height: 180px;
+}
+.add-city-card:hover { border-color: #3b82f6; background: rgba(59,130,246,0.03); }
+.add-city-card i { font-size: 1.5rem; color: var(--text-secondary); }
+.add-city-card span { font-size: 0.85rem; color: var(--text-secondary); font-weight: 600; }
+
+/* Empty state */
+.empty-city {
+    text-align: center; padding: 80px 40px; color: var(--text-secondary);
+}
+.empty-city i { font-size: 3rem; margin-bottom: 16px; display: block; opacity: 0.3; }
+.empty-city h3 { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.empty-city p { font-size: 0.9rem; max-width: 400px; margin: 0 auto 24px; }
+.empty-city a {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 24px; background: #3b82f6; color: #fff; border-radius: 8px;
+    text-decoration: none; font-weight: 600; font-size: 0.9rem;
+}
+.empty-city a:hover { background: #2563eb; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="city-page">
+    <div class="city-header">
+        <h2>Road Inspection</h2>
+        <p>Select a city to view road condition data, or upload new sessions.</p>
+    </div>
+
+    {% if cities %}
+    <div class="city-grid">
+        {% for city in cities %}
+        <a href="{% url 'sessions:network_map' %}?city={{ city.name|urlencode }}" class="city-card">
+            <div class="city-name">
+                <div class="city-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6;"><i class="fa fa-city"></i></div>
+                {{ city.name }}
+            </div>
+            <div class="city-stats">
+                <div class="city-stat">
+                    <div class="label">Sessions</div>
+                    <div class="value">{{ city.sessions }}</div>
+                </div>
+                <div class="city-stat">
+                    <div class="label">Surveyed</div>
+                    <div class="value">{{ city.total_distance }} km</div>
+                </div>
+                <div class="city-stat">
+                    <div class="label">Avg PCI</div>
+                    <div class="value" style="color:{% if city.avg_pci >= 85 %}#22c55e{% elif city.avg_pci >= 70 %}#84cc16{% elif city.avg_pci >= 55 %}#eab308{% elif city.avg_pci %}#ef4444{% else %}var(--text-secondary){% endif %}">
+                        {% if city.avg_pci %}{{ city.avg_pci }}{% else %}—{% endif %}
+                    </div>
+                </div>
+                <div class="city-stat">
+                    <div class="label">Defects</div>
+                    <div class="value" style="color:#f97316;">{{ city.total_defects }}</div>
+                </div>
+            </div>
+            <div class="city-enter"><i class="fa fa-map-marked-alt"></i> Open Map</div>
+        </a>
+        {% endfor %}
+
+        <a href="{% url 'sessions:network_map' %}" class="add-city-card">
+            <i class="fa fa-plus-circle"></i>
+            <span>Upload New Session</span>
+        </a>
+    </div>
+    {% else %}
+    <div class="empty-city">
+        <i class="fa fa-satellite-dish"></i>
+        <h3>No inspections yet</h3>
+        <p>Upload your first road inspection session to get started. Sessions will be automatically grouped by city.</p>
+        <a href="{% url 'sessions:network_map' %}"><i class="fa fa-cloud-upload-alt"></i> Upload First Session</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

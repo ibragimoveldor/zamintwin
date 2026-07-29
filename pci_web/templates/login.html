@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    {% load static %}
+    <link rel="shortcut icon" href="{% static 'images/zamintwin_logo.png' %}">
+    <title>Sign In — ZaminTwin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background: #050a14; color: #e2e8f0;
+        min-height: 100vh; display: flex;
+    }
+
+    /* Left panel - branding */
+    .login-brand {
+        flex: 1; padding: 60px;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+        display: flex; flex-direction: column; justify-content: space-between;
+        position: relative; overflow: hidden;
+    }
+    .login-brand::before {
+        content: ''; position: absolute; top: -200px; right: -200px;
+        width: 600px; height: 600px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%);
+    }
+    .login-brand::after {
+        content: ''; position: absolute; bottom: -100px; left: -100px;
+        width: 400px; height: 400px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(139,92,246,0.06) 0%, transparent 70%);
+    }
+    .brand-logo { font-weight: 800; font-size: 1.6rem; display: flex; align-items: center; gap: 4px; z-index: 1; color: #fff; }
+    .brand-logo .ai { color: #94a3b8; font-weight: 600; }
+    .brand-logo-icon { width: 36px; height: 36px; background: #3b82f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+    .brand-content { z-index: 1; }
+    .brand-content h2 { font-size: 2.2rem; font-weight: 800; line-height: 1.2; margin-bottom: 16px; letter-spacing: -0.02em; }
+    .brand-content h2 span { color: #3b82f6; }
+    .brand-content p { color: #64748b; font-size: 0.95rem; line-height: 1.6; max-width: 380px; }
+    .brand-features { z-index: 1; display: flex; flex-direction: column; gap: 12px; }
+    .brand-feature {
+        display: flex; align-items: center; gap: 12px; font-size: 0.82rem; color: #94a3b8;
+    }
+    .brand-feature-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Road strip decoration */
+    .login-road-strip {
+        display: flex; gap: 2px; margin-top: 32px; z-index: 1;
+    }
+    .login-road-block { width: 28px; height: 10px; border-radius: 2px; opacity: 0.7; }
+
+    /* Right panel - form */
+    .login-form-panel {
+        width: 480px; padding: 60px; display: flex; flex-direction: column;
+        justify-content: center; background: #050a14;
+    }
+    .login-form-panel h3 { font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; color: white; }
+    .login-form-panel .subtitle { color: #64748b; font-size: 0.88rem; margin-bottom: 32px; }
+    .form-group { margin-bottom: 20px; }
+    .form-label { display: block; font-size: 0.8rem; font-weight: 600; color: #94a3b8; margin-bottom: 8px; }
+    .form-input {
+        width: 100%; padding: 12px 16px; border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.08); background: #0d1424;
+        color: white; font-size: 0.9rem; font-family: 'Plus Jakarta Sans', sans-serif;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .form-input::placeholder { color: #334155; }
+    .form-error {
+        padding: 10px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 500;
+        background: rgba(239,68,68,0.08); color: #ef4444; border: 1px solid rgba(239,68,68,0.15);
+        margin-bottom: 20px; text-align: center;
+    }
+    .btn-login {
+        width: 100%; padding: 13px; border-radius: 10px; border: none;
+        background: #3b82f6; color: white; font-weight: 700; font-size: 0.95rem;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        cursor: pointer; transition: all 0.2s;
+    }
+    .btn-login:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.3); }
+    .form-footer { text-align: center; margin-top: 24px; font-size: 0.82rem; color: #64748b; }
+    .form-footer a { color: #3b82f6; text-decoration: none; font-weight: 600; }
+    .form-footer a:hover { text-decoration: underline; }
+    .back-link {
+        display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem;
+        color: #64748b; text-decoration: none; margin-bottom: 32px; transition: color 0.2s;
+    }
+    .back-link:hover { color: white; }
+
+    @media (max-width: 900px) {
+        body { flex-direction: column; }
+        .login-brand { display: none; }
+        .login-form-panel { width: 100%; padding: 40px 24px; min-height: 100vh; }
+    }
+    </style>
+</head>
+<body>
+
+<div class="login-brand">
+    <div class="brand-logo">
+        ZaminTwin<span class="ai">.ai</span>
+    </div>
+    <div class="brand-content">
+        <h2>AI-Powered<br><span>Road Intelligence</span></h2>
+        <p>Automated pavement condition assessment for modern infrastructure management. Detect damage, score conditions, plan maintenance.</p>
+    </div>
+    <div>
+        <div class="brand-features">
+            <div class="brand-feature">
+                <div class="brand-feature-dot" style="background:#22c55e;"></div>
+                Computer vision crack detection
+            </div>
+            <div class="brand-feature">
+                <div class="brand-feature-dot" style="background:#3b82f6;"></div>
+                ASTM D6433 PCI scoring
+            </div>
+            <div class="brand-feature">
+                <div class="brand-feature-dot" style="background:#eab308;"></div>
+                GPS-referenced interactive maps
+            </div>
+            <div class="brand-feature">
+                <div class="brand-feature-dot" style="background:#8b5cf6;"></div>
+                One-click PDF reports
+            </div>
+        </div>
+        <div class="login-road-strip">
+            <div class="login-road-block" style="background:#22c55e;"></div>
+            <div class="login-road-block" style="background:#22c55e;"></div>
+            <div class="login-road-block" style="background:#84cc16;"></div>
+            <div class="login-road-block" style="background:#eab308;"></div>
+            <div class="login-road-block" style="background:#22c55e;"></div>
+            <div class="login-road-block" style="background:#22c55e;"></div>
+            <div class="login-road-block" style="background:#f97316;"></div>
+            <div class="login-road-block" style="background:#22c55e;"></div>
+            <div class="login-road-block" style="background:#84cc16;"></div>
+            <div class="login-road-block" style="background:#22c55e;"></div>
+            <div class="login-road-block" style="background:#ef4444;"></div>
+            <div class="login-road-block" style="background:#22c55e;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="login-form-panel">
+    <a href="/" class="back-link">← Back to home</a>
+    <h3>Welcome back</h3>
+    <p class="subtitle">Sign in to your ZaminTwin account</p>
+
+    {% if login_error %}
+    <div class="form-error">{{ login_error }}</div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label class="form-label">Username</label>
+            <input type="text" name="email" class="form-input" placeholder="Enter your username" required autofocus>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" name="pws" class="form-input" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="btn-login">Sign In</button>
+    </form>
+
+    <div class="form-footer">
+        <p>Forgot your password? <a href="#">Reset it here</a></p>
+    </div>
+</div>
+
+</body>
+</html>

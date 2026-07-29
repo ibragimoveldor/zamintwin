@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Road Inspection{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Road Inspection</li>
+{% endblock %}
+
+{% block style %}
+<style>
+.stats-row { display: flex; gap: 16px; margin-bottom: 24px; }
+.stat-card {
+    flex: 1; background: white; border-radius: 12px; padding: 20px;
+    border: 1px solid #e2e8f0;
+}
+.stat-card .label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.stat-card .value { font-size: 1.75rem; font-weight: 700; color: #0f172a; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+.stat-card .sub { font-size: 0.8rem; color: #94a3b8; margin-top: 2px; }
+
+.upload-zone {
+    background: white; border: 2px dashed #cbd5e1; border-radius: 12px;
+    padding: 32px; text-align: center; margin-bottom: 24px;
+    transition: all 0.2s; cursor: pointer;
+}
+.upload-zone:hover { border-color: #3b82f6; background: #f8fafc; }
+.upload-zone i { font-size: 2rem; color: #94a3b8; margin-bottom: 8px; }
+.upload-zone p { color: #64748b; margin: 0; }
+
+.session-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+.session-card {
+    background: white; border-radius: 12px; border: 1px solid #e2e8f0;
+    padding: 20px; transition: all 0.2s; text-decoration: none; color: inherit; display: block;
+}
+.session-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); text-decoration: none; color: inherit; }
+.session-card .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.session-card .session-name { font-weight: 600; color: #0f172a; font-size: 0.95rem; }
+.session-card .session-date { font-size: 0.75rem; color: #94a3b8; }
+
+.pci-badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+    border-radius: 20px; font-size: 0.8rem; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+.pci-good { background: #dcfce7; color: #166534; }
+.pci-satisfactory { background: #ecfccb; color: #3f6212; }
+.pci-fair { background: #fef9c3; color: #854d0e; }
+.pci-poor { background: #ffedd5; color: #9a3412; }
+.pci-very_poor { background: #fee2e2; color: #991b1b; }
+.pci-failed { background: #fee2e2; color: #7f1d1d; }
+
+.session-stats { display: flex; gap: 16px; margin-top: 12px; }
+.session-stats .item { font-size: 0.8rem; color: #64748b; }
+.session-stats .item strong { color: #334155; font-family: 'JetBrains Mono', monospace; }
+
+.status-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.status-ready { background: #dcfce7; color: #166534; }
+.status-processing { background: #fef9c3; color: #854d0e; }
+.status-error { background: #fee2e2; color: #991b1b; }
+
+.delete-btn {
+    background: none; border: none; color: #94a3b8; cursor: pointer;
+    font-size: 0.85rem; padding: 4px 8px; border-radius: 6px; transition: all 0.15s;
+}
+.delete-btn:hover { background: #fee2e2; color: #ef4444; }
+
+.empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+.empty-state i { font-size: 3rem; margin-bottom: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="padding: 24px;">
+
+    <!-- Stats -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="label">Sessions</div>
+            <div class="value">{{ stats.total_sessions }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Distance surveyed</div>
+            <div class="value">{{ stats.total_distance|floatformat:1 }} km</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Total defects</div>
+            <div class="value">{{ stats.total_defects }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Network avg PCI</div>
+            <div class="value" style="color: {% if stats.avg_pci >= 85 %}#16a34a{% elif stats.avg_pci >= 70 %}#84cc16{% elif stats.avg_pci >= 55 %}#ca8a04{% else %}#ef4444{% endif %}">
+                {% if stats.avg_pci %}{{ stats.avg_pci }}{% else %}—{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload -->
+    <form method="post" action="{% url 'sessions:upload' %}" enctype="multipart/form-data" id="uploadForm">
+        {% csrf_token %}
+        <div class="upload-zone" onclick="document.getElementById('zipInput').click();">
+            <i class="fa fa-cloud-upload-alt"></i>
+            <p><strong>Upload session zips</strong></p>
+            <p style="font-size: 0.8rem;">Drop your Jetson session .zip files here or click to browse (multiple allowed)</p>
+            <input type="file" name="session_zip" id="zipInput" accept=".zip" multiple style="display:none;"
+                   onchange="document.getElementById('uploadForm').submit();">
+        </div>
+    </form>
+
+    <!-- Messages -->
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}" style="border-radius: 10px; margin-bottom: 16px; font-size: 0.85rem; padding: 12px 16px; border: none;
+        {% if message.tags == 'success' %}background: #dcfce7; color: #166534;{% elif message.tags == 'error' %}background: #fee2e2; color: #991b1b;{% else %}background: #fef9c3; color: #854d0e;{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Session grid -->
+    {% if sessions %}
+    <div class="session-grid">
+        {% for s in sessions %}
+        <a href="{% url 'sessions:detail' s.pk %}" class="session-card">
+            <div class="header">
+                <div>
+                    <div class="session-name">{{ s.session_id }}</div>
+                    <div class="session-date">{{ s.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    {% if s.is_ready and s.avg_pci %}
+                    <span class="pci-badge pci-{{ s.condition_rating }}">{{ s.avg_pci }}</span>
+                    {% endif %}
+                    <span class="status-badge status-{% if s.status == 2 %}ready{% elif s.status == 1 %}processing{% else %}error{% endif %}">
+                        {{ s.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="session-stats">
+                <div class="item"><strong>{{ s.distance_km|floatformat:1 }}</strong> km</div>
+                <div class="item"><strong>{{ s.total_defects }}</strong> defects</div>
+                <div class="item"><strong>{{ s.total_segments }}</strong> segments</div>
+                {% if s.device %}
+                <div class="item" style="margin-left: auto;">{{ s.device }}</div>
+                {% endif %}
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fa fa-road"></i>
+        <h3>No sessions yet</h3>
+        <p>Upload your first Jetson session zip to get started.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

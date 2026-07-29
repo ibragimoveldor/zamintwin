@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Review {{ stats.count }} Sessions{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'sessions:network_map' %}">Road Inspection</a></li>
+<li class="breadcrumb-item active">Review {{ stats.count }} Sessions</li>
+{% endblock %}
+
+{% block style %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+.review-layout { display: grid; grid-template-columns: 1fr 380px; gap: 0; height: calc(100vh - 52px); }
+.review-left { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.review-right { display: flex; flex-direction: column; background: #0f172a; color: #fff; border-left: 1px solid rgba(255,255,255,0.06); overflow: hidden; }
+
+/* Top bar */
+.review-topbar {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    background: var(--topbar-bg); border-bottom: 1px solid var(--topbar-border); flex-shrink: 0; color: var(--text);
+}
+.review-topbar h5 { margin: 0; font-size: 1rem; font-weight: 700; }
+.review-topbar .stat-pill {
+    background: #f1f5f9; padding: 3px 10px; border-radius: 10px;
+    font-size: 0.72rem; color: #64748b; font-family: 'JetBrains Mono', monospace;
+}
+
+/* Map */
+#reviewMap { flex: 1; min-height: 300px; z-index: 1; }
+.content-area { overflow: hidden !important; height: calc(100vh - 52px) !important; }
+
+/* Right panel */
+.rp-header {
+    padding: 14px 18px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.rp-header h6 { margin: 0; font-size: 0.85rem; font-weight: 700; }
+
+.session-review-card {
+    padding: 12px 18px; border-bottom: 1px solid rgba(255,255,255,0.06);
+    cursor: pointer; transition: background 0.15s;
+}
+.session-review-card:hover { background: rgba(255,255,255,0.04); }
+.session-review-card.expanded { background: rgba(59,130,246,0.06); }
+.src-header { display: flex; align-items: center; justify-content: space-between; }
+.src-name { font-weight: 700; font-size: 0.82rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.src-pci { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.8rem; }
+.src-meta { font-size: 0.65rem; color: rgba(255,255,255,0.35); margin-top: 3px; display: flex; gap: 8px; }
+.src-actions { display: flex; gap: 6px; margin-top: 8px; }
+.src-actions a, .src-actions button {
+    padding: 5px 10px; border-radius: 5px; font-size: 0.68rem; font-weight: 600;
+    text-decoration: none; cursor: pointer; font-family: inherit; border: none;
+}
+.src-btn-detail { background: #3b82f6; color: #fff; }
+.src-btn-detail:hover { background: #2563eb; }
+.src-btn-pdf { background: rgba(255,255,255,0.06); color: #60a5fa; }
+.src-btn-pdf:hover { background: rgba(255,255,255,0.1); }
+.src-btn-focus { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
+.src-btn-focus:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+.src-dets { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); }
+.src-dets.show { display: block; }
+.src-det-item {
+    display: flex; align-items: center; gap: 6px; padding: 4px 0; cursor: pointer;
+    font-size: 0.72rem; transition: color 0.1s;
+}
+.src-det-item:hover { color: #60a5fa; }
+.src-det-item .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+.review-list { flex: 1; overflow-y: auto; }
+.review-list::-webkit-scrollbar { width: 4px; }
+.review-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* Detection popup */
+.leaflet-popup-content-wrapper { background: #0f172a !important; color: #fff !important; border-radius: 10px !important; box-shadow: 0 8px 24px rgba(0,0,0,0.35) !important; }
+.leaflet-popup-tip { background: #0f172a !important; }
+.leaflet-popup-content { margin: 0 !important; width: 320px !important; }
+.det-popup-imgwrap { position: relative; border-radius: 10px 10px 0 0; overflow: hidden; cursor: zoom-in; max-height: 240px; }
+.det-popup-img { width: 100%; display: block; }
+.det-popup-bbox { position: absolute; border: 2px solid #ef4444; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,0.3), 0 0 8px rgba(239,68,68,0.4); pointer-events: none; }
+.det-popup-noimg { width: 100%; height: 80px; background: #1e293b; display: flex; align-items: center; justify-content: center; border-radius: 10px 10px 0 0; color: rgba(255,255,255,0.15); font-size: 1.3rem; }
+.det-popup-zoom { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); color: #fff; border: none; border-radius: 4px; padding: 2px 6px; font-size: 0.65rem; cursor: pointer; opacity: 0.6; }
+.det-popup-zoom:hover { opacity: 1; }
+.det-popup-body { padding: 10px 12px 8px; }
+.det-popup-nav { display: flex; justify-content: space-between; align-items: center; padding: 0 12px 10px; }
+.det-popup-nav button { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); color: #e2e8f0; padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.72rem; font-family: inherit; transition: all 0.15s; }
+.det-popup-nav button:hover { background: rgba(255,255,255,0.15); }
+.det-popup-nav button:disabled { opacity: 0.25; cursor: default; }
+.det-popup-nav .nav-counter { font-size: 0.65rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace; }
+
+@media (max-width: 1024px) {
+    .review-layout { grid-template-columns: 1fr; }
+    .review-left { min-height: 400px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="review-layout">
+    <div class="review-left">
+        <div class="review-topbar">
+            <a href="{% url 'sessions:network_map' %}" style="color:#3b82f6;font-size:0.85rem;text-decoration:none;"><i class="fa fa-arrow-left"></i></a>
+            <h5>Review {{ stats.count }} Sessions</h5>
+            <span class="stat-pill">{{ stats.total_distance }} km</span>
+            <span class="stat-pill" style="color:{% if stats.avg_pci >= 85 %}#16a34a{% elif stats.avg_pci >= 70 %}#84cc16{% elif stats.avg_pci >= 55 %}#ca8a04{% else %}#ef4444{% endif %};">PCI {{ stats.avg_pci|default:"—" }}</span>
+            <span class="stat-pill" style="color:#f97316;">{{ stats.total_defects }} defects</span>
+            <a href="{% url 'sessions:multi_pdf_report' %}?ids={{ session_ids }}" style="margin-left:auto;padding:5px 14px;background:#3b82f6;color:#fff;border-radius:6px;font-size:0.75rem;font-weight:600;text-decoration:none;white-space:nowrap;"><i class="fa fa-file-pdf" style="margin-right:4px;"></i>PDF Report</a>
+        </div>
+        <div id="reviewMap"></div>
+    </div>
+
+    <div class="review-right">
+        <div class="rp-header">
+            <h6><i class="fa fa-clipboard-list" style="margin-right:6px;opacity:0.4;"></i> Sessions</h6>
+            <span style="font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'JetBrains Mono',monospace;">{{ stats.count }} total</span>
+        </div>
+        <div class="review-list">
+            {% for sd in sessions_data %}
+            <div class="session-review-card" data-sid="{{ sd.session.pk }}"
+                 data-lat="{{ sd.session.min_lat|default:'41.31' }}" data-lon="{{ sd.session.min_lon|default:'69.28' }}"
+                 data-mlat="{{ sd.session.max_lat|default:'41.32' }}" data-mlon="{{ sd.session.max_lon|default:'69.29' }}">
+                <div class="src-header" onclick="toggleSessionCard(this.closest('.session-review-card'))">
+                    <span class="src-name">{{ sd.session.display_name }}</span>
+                    <span class="src-pci" style="color:{% if sd.session.avg_pci >= 85 %}#22c55e{% elif sd.session.avg_pci >= 70 %}#84cc16{% elif sd.session.avg_pci >= 55 %}#eab308{% elif sd.session.avg_pci >= 40 %}#ea580c{% else %}#ef4444{% endif %}">PCI {{ sd.session.avg_pci|floatformat:0 }}</span>
+                </div>
+                <div class="src-meta">
+                    <span>{{ sd.session.start_time|date:"M d, Y" }}</span>
+                    <span>{{ sd.session.distance_km|floatformat:1 }} km</span>
+                    <span>{{ sd.det_count }} defects</span>
+                </div>
+                <div class="src-actions">
+                    <a href="{% url 'sessions:detail' sd.session.pk %}" class="src-btn-detail"><i class="fa fa-eye" style="margin-right:4px;"></i>Detail</a>
+                    <a href="{% url 'sessions:pdf_report' sd.session.pk %}" class="src-btn-pdf"><i class="fa fa-file-pdf"></i> PDF</a>
+                    <button class="src-btn-focus" onclick="event.stopPropagation();focusSession({{ sd.session.pk }});"><i class="fa fa-crosshairs"></i></button>
+                </div>
+                <div class="src-dets" id="dets-{{ sd.session.pk }}">
+                    {% for det in sd.detections|slice:":20" %}
+                    <div class="src-det-item" onclick="event.stopPropagation();selectDet({{ det.id }});">
+                        <div class="dot" style="background:{% if det.severity == 'critical' %}#ef4444{% elif det.severity == 'high' %}#f97316{% else %}#eab308{% endif %};"></div>
+                        <span>{{ det.defect_display_name }}</span>
+                        <span style="color:rgba(255,255,255,0.25);margin-left:auto;">{{ det.distance_km|floatformat:2 }} km</span>
+                    </div>
+                    {% endfor %}
+                    {% if sd.det_count > 20 %}
+                    <div style="font-size:0.62rem;color:rgba(255,255,255,0.2);padding:4px 0;text-align:center;">+ {{ sd.det_count|add:"-20" }} more</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scriptBlock %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var SEGS = {{ segments_geojson|safe }};
+var DETS = {{ detections_geojson|safe }};
+var sevColors = { critical: '#ef4444', high: '#f97316', medium: '#eab308', low: '#84cc16' };
+var POTHOLE_TYPES = ['pothole', 'D40', 'D50', 'd40', 'd50'];
+function isPothole(rawType) { return POTHOLE_TYPES.indexOf(rawType) !== -1; }
+function detColorMR(rawType, severity) {
+    if (isPothole(rawType)) return '#ef4444';
+    return sevColors[severity] || '#eab308';
+}
+
+var map = L.map('reviewMap', { zoomControl: false }).setView([41.311, 69.28], 12);
+var _darkTiles = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+var _lightTiles = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+var _tileOpts = { attribution: '&copy; OSM &copy; CARTO', subdomains: 'abcd', maxZoom: 19 };
+var _isDark = (localStorage.getItem('theme') || 'light') === 'dark';
+var _tileLayer = L.tileLayer(_isDark ? _darkTiles : _lightTiles, _tileOpts).addTo(map);
+window.addEventListener('themeChanged', function(e) {
+    map.removeLayer(_tileLayer);
+    _tileLayer = L.tileLayer(e.detail.dark ? _darkTiles : _lightTiles, _tileOpts).addTo(map);
+});
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+var allBounds = L.latLngBounds();
+var sLayers = {};
+
+// Draw road segments
+if (SEGS && SEGS.features) {
+    SEGS.features.forEach(function(f) {
+        var co = f.geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
+        var p = f.properties, sid = p.session_id;
+        var ln = L.polyline(co, { color: p.color || '#22c55e', weight: 5, opacity: 0.85, lineCap: 'round' }).addTo(map);
+        co.forEach(function(c) { allBounds.extend(c); });
+        if (!sLayers[sid]) sLayers[sid] = [];
+        sLayers[sid].push(ln);
+    });
+}
+
+// Detection markers
+var detMarkers = {};
+var allDets = [];
+if (DETS && DETS.features) {
+    DETS.features.forEach(function(f) {
+        var p = f.properties;
+        var clr = detColorMR(p.raw_type, p.severity);
+        var icon = L.divIcon({
+            className: '', iconSize: [10, 10], iconAnchor: [5, 5],
+            html: '<div style="width:10px;height:10px;border-radius:50%;border:2px solid #0f172a;background:' + clr + ';"></div>',
+        });
+        var m = L.marker([f.geometry.coordinates[1], f.geometry.coordinates[0]], { icon: icon }).addTo(map);
+        m.on('click', function() { selectDet(p.id); });
+        detMarkers[p.id] = m;
+        allDets.push({
+            id: p.id, type: p.type, raw_type: p.raw_type, severity: p.severity,
+            confidence: p.confidence, distance_km: p.distance_km, thumbnail: p.thumbnail,
+            bbox: p.bbox, frame_bboxes: p.frame_bboxes,
+            lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], session_id: p.session_id,
+        });
+    });
+}
+allDets.sort(function(a, b) { return a.distance_km - b.distance_km; });
+
+if (allBounds.isValid()) map.fitBounds(allBounds, { padding: [40, 40] });
+setTimeout(function() { map.invalidateSize(); if (allBounds.isValid()) map.fitBounds(allBounds, { padding: [40, 40] }); }, 200);
+
+// Toggle session card expand
+function toggleSessionCard(card) {
+    var sid = card.dataset.sid;
+    var detsEl = document.getElementById('dets-' + sid);
+    var isExpanded = card.classList.contains('expanded');
+
+    // Collapse all
+    document.querySelectorAll('.session-review-card').forEach(function(c) {
+        c.classList.remove('expanded');
+        var d = c.querySelector('.src-dets');
+        if (d) d.classList.remove('show');
+    });
+
+    if (!isExpanded) {
+        card.classList.add('expanded');
+        if (detsEl) detsEl.classList.add('show');
+        // Zoom to session
+        focusSession(parseInt(sid));
+    } else {
+        // Reset map
+        Object.keys(sLayers).forEach(function(k) {
+            sLayers[k].forEach(function(l) { l.setStyle({ opacity: 0.85, weight: 5 }); });
+        });
+        if (allBounds.isValid()) map.fitBounds(allBounds, { padding: [40, 40], animate: true });
+    }
+}
+
+function focusSession(sid) {
+    Object.keys(sLayers).forEach(function(k) {
+        var match = parseInt(k) === sid;
+        sLayers[k].forEach(function(l) { l.setStyle({ opacity: match ? 1 : 0.15, weight: match ? 7 : 2 }); });
+    });
+    var card = document.querySelector('.session-review-card[data-sid="' + sid + '"]');
+    if (card) {
+        var b = [[parseFloat(card.dataset.lat), parseFloat(card.dataset.lon)],
+                 [parseFloat(card.dataset.mlat), parseFloat(card.dataset.mlon)]];
+        map.fitBounds(b, { padding: [50, 50], maxZoom: 16, animate: true, duration: 0.5 });
+    }
+}
+
+// Detection popup with prev/next
+var detPopup = L.popup({ closeButton: true, maxWidth: 280, minWidth: 260 });
+var currentDetIdx = -1;
+
+function selectDet(detId) {
+    var idx = allDets.findIndex(function(d) { return d.id === detId; });
+    if (idx === -1) return;
+    currentDetIdx = idx;
+    showDetPopup(idx);
+}
+
+function showDetPopup(idx) {
+    var det = allDets[idx];
+    var total = allDets.length;
+    var sevColor = detColorMR(det.raw_type, det.severity);
+
+    var imgHtml;
+    if (det.thumbnail) {
+        var bboxHtml = '';
+        var imgW = 1920, imgH = 1080;
+        var bboxes = det.frame_bboxes || (det.bbox ? [{ bbox: det.bbox, type: det.type, raw_type: det.raw_type, id: det.id }] : []);
+        bboxes.forEach(function(b) {
+            if (!b.bbox || b.bbox.length !== 4) return;
+            var bLeft = (b.bbox[0] / imgW * 100).toFixed(2);
+            var bTop = (b.bbox[1] / imgH * 100).toFixed(2);
+            var bW = ((b.bbox[2] - b.bbox[0]) / imgW * 100).toFixed(2);
+            var bH = ((b.bbox[3] - b.bbox[1]) / imgH * 100).toFixed(2);
+            var bboxColor = isPothole(b.raw_type) ? '#ef4444' : sevColor;
+            var isCurrent = (b.id === det.id);
+            var opacity = isCurrent ? 1 : 0.5;
+            bboxHtml += '<div class="det-popup-bbox" style="left:' + bLeft + '%;top:' + bTop + '%;width:' + bW + '%;height:' + bH + '%;border-color:' + bboxColor + ';opacity:' + opacity + ';box-shadow:0 0 0 1px rgba(0,0,0,0.3),0 0 8px ' + bboxColor + '66;"></div>';
+            bboxHtml += '<div style="position:absolute;left:' + bLeft + '%;top:' + bTop + '%;transform:translateY(-100%);background:' + bboxColor + ';color:#fff;font-size:0.55rem;padding:1px 4px;border-radius:2px;white-space:nowrap;pointer-events:none;opacity:' + opacity + ';">' + b.type + '</div>';
+        });
+        imgHtml = '<div class="det-popup-imgwrap"><img class="det-popup-img" src="' + det.thumbnail + '">' + bboxHtml +
+                  '<button class="det-popup-zoom"><i class="fa fa-expand"></i></button></div>';
+    } else {
+        imgHtml = '<div class="det-popup-noimg"><i class="fa fa-camera"></i></div>';
+    }
+
+    var container = document.createElement('div');
+    container.innerHTML = imgHtml +
+        '<div class="det-popup-body">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">' +
+                '<span style="font-weight:700;font-size:0.82rem;">' + det.type + '</span>' +
+                '<span style="background:' + sevColor + ';color:#fff;padding:1px 7px;border-radius:10px;font-size:0.58rem;font-weight:600;">' + det.severity + '</span>' +
+            '</div>' +
+            '<div style="font-size:0.68rem;color:#94a3b8;">' + Math.round(det.confidence*100) + '% &middot; ' + det.distance_km.toFixed(2) + ' km</div>' +
+        '</div>' +
+        '<div class="det-popup-nav">' +
+            '<button class="prev-btn" ' + (idx === 0 ? 'disabled' : '') + '><i class="fa fa-arrow-left"></i> Prev</button>' +
+            '<span class="nav-counter">' + (idx + 1) + ' / ' + total + '</span>' +
+            '<button class="next-btn" ' + (idx === total - 1 ? 'disabled' : '') + '>Next <i class="fa fa-arrow-right"></i></button>' +
+        '</div>';
+
+    var prevBtn = container.querySelector('.prev-btn');
+    var nextBtn = container.querySelector('.next-btn');
+    if (prevBtn) prevBtn.addEventListener('click', function(e) { e.stopPropagation(); navDet(-1); });
+    if (nextBtn) nextBtn.addEventListener('click', function(e) { e.stopPropagation(); navDet(1); });
+
+    var zoomBtn = container.querySelector('.det-popup-zoom');
+    var imgWrap = container.querySelector('.det-popup-imgwrap');
+    if (zoomBtn && det.thumbnail) {
+        zoomBtn.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(det.thumbnail, det.type + ' · ' + det.severity); });
+    }
+    if (imgWrap && det.thumbnail) {
+        imgWrap.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(det.thumbnail, det.type + ' · ' + det.severity); });
+    }
+
+    detPopup.setLatLng([det.lat, det.lon]).setContent(container).openOn(map);
+    map.flyTo([det.lat, det.lon], 17, { duration: 0.5 });
+}
+
+function navDet(dir) {
+    var newIdx = currentDetIdx + dir;
+    if (newIdx < 0 || newIdx >= allDets.length) return;
+    currentDetIdx = newIdx;
+    showDetPopup(newIdx);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,399 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Map View — {{ project.name }}{% endblock %}
+
+{% block style %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+:root {
+    --bg-card: #ffffff;
+    --bg-page: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --border: #e2e8f0;
+    --accent: #3b82f6;
+}
+.mapview-page { font-family: 'DM Sans', sans-serif; position: relative; }
+.mapview-page * { box-sizing: border-box; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+/* Full-height map */
+#fullMap { height: calc(100vh - 120px); width: 100%; z-index: 1; }
+
+/* Top bar overlay */
+.map-topbar {
+    position: absolute; top: 10px; left: 60px; right: 60px; z-index: 1000;
+    background: rgba(15,23,42,0.88); backdrop-filter: blur(8px);
+    border-radius: 10px; padding: 10px 20px; color: white;
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+}
+.map-topbar-stat { text-align: center; min-width: 80px; }
+.map-topbar-value { font-size: 1.3rem; font-weight: 700; line-height: 1.2; }
+.map-topbar-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; }
+.map-topbar-divider { width: 1px; height: 30px; background: rgba(255,255,255,0.15); }
+.map-topbar-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; flex: 1; min-width: 120px; }
+.map-topbar-bar div { transition: width 0.5s ease; }
+.map-topbar-actions a {
+    padding: 5px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;
+    text-decoration: none; color: white; transition: opacity 0.2s;
+}
+.map-topbar-actions a:hover { opacity: 0.85; text-decoration: none; color: white; }
+
+/* Side panel */
+.map-sidepanel {
+    position: absolute; top: 70px; right: 10px; z-index: 1000;
+    width: 320px; max-height: calc(100vh - 200px); overflow-y: auto;
+    background: rgba(255,255,255,0.95); backdrop-filter: blur(8px);
+    border-radius: 10px; border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    display: none;
+}
+.map-sidepanel.show { display: block; }
+.sidepanel-head {
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: rgba(255,255,255,0.95); z-index: 2;
+}
+.sidepanel-head h6 { margin: 0; font-weight: 700; font-size: 0.9rem; }
+.sidepanel-close { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-secondary); }
+.sidepanel-body { padding: 12px 16px; }
+.sidepanel-img {
+    background: #0f172a; border-radius: 6px; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 120px; margin-bottom: 10px; cursor: pointer;
+}
+.sidepanel-img img { max-width: 100%; max-height: 200px; object-fit: contain; transform: rotate(90deg); }
+.sp-tbl { width: 100%; font-size: 0.82rem; }
+.sp-tbl th { color: var(--text-secondary); font-weight: 500; padding: 5px 8px; width: 45%; }
+.sp-tbl td { font-weight: 600; padding: 5px 8px; }
+.sp-tbl tr { border-bottom: 1px solid #f1f5f9; }
+
+/* Condition badges */
+.cond-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
+.cond-good { background: #dcfce7; color: #166534; }
+.cond-satisfactory { background: #ecfccb; color: #3f6212; }
+.cond-fair { background: #fef9c3; color: #854d0e; }
+.cond-poor { background: #ffedd5; color: #9a3412; }
+.cond-verypoor { background: #fee2e2; color: #991b1b; }
+.cond-serious { background: #fecaca; color: #7f1d1d; }
+.cond-failed { background: #991b1b; color: white; }
+.cond-notdamaged { background: #f0fdf4; color: #166534; }
+
+/* Legend */
+.map-legend {
+    position: absolute; bottom: 20px; left: 10px; z-index: 1000;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(6px);
+    border-radius: 8px; padding: 10px 14px; font-size: 0.72rem;
+    border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+.map-legend-title { font-weight: 700; margin-bottom: 6px; font-size: 0.75rem; }
+.legend-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.legend-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+
+/* Section nav buttons */
+.map-section-nav {
+    position: absolute; bottom: 20px; right: 10px; z-index: 1000;
+    display: flex; gap: 6px;
+}
+.map-section-nav button {
+    width: 36px; height: 36px; border-radius: 8px; border: none;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(6px);
+    cursor: pointer; font-size: 0.9rem; color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: background 0.2s;
+}
+.map-section-nav button:hover { background: var(--accent); color: white; }
+
+/* Fullscreen modal */
+.img-modal-backdrop {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+    z-index: 9999; cursor: zoom-out; align-items: center; justify-content: center;
+}
+.img-modal-backdrop.show { display: flex; }
+.img-modal-backdrop img {
+    max-width: 95vh; max-height: 90vw; object-fit: contain;
+    border-radius: 4px; box-shadow: 0 0 60px rgba(0,0,0,0.5);
+    transform: rotate(90deg);
+}
+.img-modal-close {
+    position: fixed; top: 16px; right: 20px; color: white; font-size: 1.5rem;
+    cursor: pointer; z-index: 10000; opacity: 0.7; background: none; border: none;
+}
+.img-modal-close:hover { opacity: 1; }
+.img-modal-info {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.7); color: white; padding: 8px 20px; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 600; z-index: 10000;
+}
+.img-modal-pci {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    padding: 8px 24px; border-radius: 10px; z-index: 10000;
+    font-size: 1.4rem; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+    color: white; text-align: center; line-height: 1.2;
+}
+.img-modal-pci small { display: block; font-size: 0.7rem; font-weight: 500; opacity: 0.8; }
+.img-modal-nav {
+    position: fixed; top: 50%; transform: translateY(-50%); color: white;
+    font-size: 2rem; cursor: pointer; z-index: 10000; opacity: 0.5;
+    background: none; border: none; padding: 20px;
+}
+.img-modal-nav:hover { opacity: 1; }
+.img-modal-prev { left: 10px; }
+.img-modal-next { right: 10px; }
+
+@media (max-width: 768px) {
+    .map-topbar { left: 10px; right: 10px; padding: 8px 12px; gap: 12px; }
+    .map-topbar-value { font-size: 1rem; }
+    .map-sidepanel { width: 280px; }
+    #fullMap { height: calc(100vh - 100px); }
+}
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'analysis:results' project.id %}">{{ project.name }}</a></li>
+    <li class="breadcrumb-item active">Map View</li>
+{% endblock %}
+
+{% block content %}
+<div class="mapview-page">
+
+    {# Full-screen map #}
+    <div id="fullMap"></div>
+
+    {# Top stats overlay #}
+    <div class="map-topbar" id="mapTopbar">
+        <div class="map-topbar-stat">
+            <div class="map-topbar-value mono" id="mtTotalKm">—</div>
+            <div class="map-topbar-label">Total Length</div>
+        </div>
+        <div class="map-topbar-divider"></div>
+        <div class="map-topbar-stat">
+            <div class="map-topbar-value mono" id="mtTiles">—</div>
+            <div class="map-topbar-label">Tiles</div>
+        </div>
+        <div class="map-topbar-divider"></div>
+        <div class="map-topbar-stat">
+            <div class="map-topbar-value mono" id="mtAvgPci">—</div>
+            <div class="map-topbar-label">Avg PCI</div>
+        </div>
+        <div class="map-topbar-divider"></div>
+        <div style="flex:1;min-width:100px;">
+            <div class="map-topbar-label mb-1">Condition</div>
+            <div class="map-topbar-bar" id="mtCondBar"></div>
+        </div>
+        <div class="map-topbar-actions">
+            <a href="{% url 'analysis:results' project.id %}" style="background:#3b82f6;"><i class="fa fa-chart-bar"></i> Dashboard</a>
+            <a href="{% url 'analysis:download' project.id %}" style="background:#059669;"><i class="fa fa-download"></i> CSV</a>
+        </div>
+    </div>
+
+    {# Side panel for tile details #}
+    <div class="map-sidepanel" id="sidePanel">
+        <div class="sidepanel-head">
+            <h6><i class="fa fa-search-plus" style="color:var(--accent);margin-right:6px;"></i> <span id="spTitle">Tile Detail</span></h6>
+            <button class="sidepanel-close" id="spClose"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sidepanel-body">
+            <div class="sidepanel-img" id="spImg">
+                <span style="color:rgba(255,255,255,0.4);font-size:0.8rem;">No image</span>
+            </div>
+            <table class="sp-tbl" id="spTbl">
+                <tr><th>Condition</th><td id="spCond">—</td></tr>
+                <tr><th>PCI Score</th><td id="spPci" class="mono">—</td></tr>
+                <tr><th>Crack Length</th><td id="spCrack" class="mono">—</td></tr>
+                <tr><th>Alligator</th><td id="spAlr" class="mono">—</td></tr>
+                <tr><th>Patching</th><td id="spPatch" class="mono">—</td></tr>
+                <tr><th>Pothole</th><td id="spPot" class="mono">—</td></tr>
+                <tr><th>GPS</th><td id="spGps" class="mono" style="font-size:0.75rem;">—</td></tr>
+            </table>
+        </div>
+    </div>
+
+    {# PCI Legend #}
+    <div class="map-legend">
+        <div class="map-legend-title">PCI Score</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#22c55e;"></div> Good (86-100)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#84cc16;"></div> Satisfactory (71-85)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#eab308;"></div> Fair (56-70)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#f97316;"></div> Poor (41-55)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#ef4444;"></div> Very Poor (26-40)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#dc2626;"></div> Serious (11-25)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#991b1b;"></div> Failed (0-10)</div>
+    </div>
+
+    {# Section nav #}
+    <div class="map-section-nav">
+        <button id="navPrev" title="Previous section"><i class="fa fa-chevron-left"></i></button>
+        <button id="navNext" title="Next section"><i class="fa fa-chevron-right"></i></button>
+    </div>
+
+    {# Fullscreen image modal #}
+    <div class="img-modal-backdrop" id="imgModal">
+        <button class="img-modal-close" id="imgModalClose"><i class="fa fa-times"></i></button>
+        <button class="img-modal-nav img-modal-prev" id="imgModalPrev"><i class="fa fa-chevron-left"></i></button>
+        <button class="img-modal-nav img-modal-next" id="imgModalNext"><i class="fa fa-chevron-right"></i></button>
+        <img src="" id="imgModalImg" alt="">
+        <div class="img-modal-info" id="imgModalInfo"></div>
+        <div class="img-modal-pci" id="imgModalPci"></div>
+    </div>
+</div>
+
+{{ details|json_script:'details-data' }}
+{% endblock %}
+
+{% block scriptBlock %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+$(document).ready(function() {
+    var details = JSON.parse($('#details-data').html());
+    var imagePath = '/media/{{ image_path }}';
+    var activeIdx = -1;
+
+    function pciColor(pci) {
+        if (pci >= 100) return '#22c55e';
+        if (pci > 85) return '#22c55e';
+        if (pci > 70) return '#84cc16';
+        if (pci > 55) return '#eab308';
+        if (pci > 40) return '#f97316';
+        if (pci > 25) return '#ef4444';
+        if (pci > 10) return '#dc2626';
+        if (pci === 0) return '#22c55e';
+        return '#991b1b';
+    }
+    function condClass(c) { return 'cond-' + c.toLowerCase().replace(/\s+/g, ''); }
+    function parseGPS(name) {
+        try {
+            var p = name.split('_');
+            var lat = parseFloat(p[3]), lng = parseFloat(p[4]);
+            if (isNaN(lat)||isNaN(lng)||lat<-90||lat>90||lng<-180||lng>180) return null;
+            return {lat:lat, lng:lng};
+        } catch(e) { return null; }
+    }
+
+    // ===== TOP STATS =====
+    var totalPci=0, damaged=0;
+    var condCounts={};
+    var condOrder=['Good','Satisfactory','Not Damaged','Fair','Poor','Very Poor','Serious','Failed'];
+    var condColors={'Good':'#22c55e','Satisfactory':'#84cc16','Not Damaged':'#a3e635','Fair':'#eab308','Poor':'#f97316','Very Poor':'#ef4444','Serious':'#dc2626','Failed':'#991b1b'};
+    details.forEach(function(d) {
+        totalPci+=d.pci_rating;
+        if(d.pav_condition!=='Not Damaged'&&d.pav_condition!=='Good') damaged++;
+        condCounts[d.pav_condition]=(condCounts[d.pav_condition]||0)+1;
+    });
+    var avg = details.length ? totalPci/details.length : 0;
+    $('#mtAvgPci').text(avg.toFixed(1)+'%');
+    $('#mtTotalKm').text((details.length*10/1000).toFixed(2)+' km');
+    $('#mtTiles').text(details.length);
+    var barH='';
+    condOrder.forEach(function(c){if(condCounts[c]){barH+='<div style="width:'+(condCounts[c]/details.length*100)+'%;background:'+condColors[c]+'" title="'+c+': '+condCounts[c]+'"></div>';}});
+    $('#mtCondBar').html(barH);
+
+    // ===== MAP =====
+    var map = L.map('fullMap');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    var markers=[], bounds=[], polyPts=[];
+    details.forEach(function(d,idx){
+        var gps=parseGPS(d.img_name || d.image_name);
+        if(gps){
+            bounds.push([gps.lat,gps.lng]); polyPts.push([gps.lat,gps.lng]);
+            var m=L.circleMarker([gps.lat,gps.lng],{
+                radius:8, fillColor:pciColor(d.pci_rating), color:'#fff', weight:2, fillOpacity:0.9
+            }).addTo(map);
+            m.bindTooltip('<b>Section '+(idx+1)+'</b><br>PCI: '+d.pci_rating.toFixed(0)+'%<br>'+d.pav_condition,{direction:'top',offset:[0,-10]});
+            m.on('click',function(){ selectSection(idx); });
+            markers.push({m:m,idx:idx,gps:gps});
+        }
+    });
+    if(polyPts.length>1) L.polyline(polyPts,{color:'#3b82f6',weight:3,opacity:0.4,dashArray:'6 4'}).addTo(map);
+    if(bounds.length>0) map.fitBounds(bounds,{padding:[60,60]});
+    else map.setView([37.26,127.65],12);
+    setTimeout(function(){map.invalidateSize();},300);
+
+    // ===== SECTION SELECTION =====
+    function selectSection(idx){
+        if(idx<0||idx>=details.length) return;
+        activeIdx=idx;
+        var d=details[idx];
+        var imgName = d.img_name || d.image_name || '';
+
+        // Side panel
+        $('#sidePanel').addClass('show');
+        $('#spTitle').text('Section '+(idx+1)+' / '+details.length);
+        $('#spCond').html('<span class="cond-badge '+condClass(d.pav_condition)+'">'+d.pav_condition+'</span>');
+        $('#spPci').text(d.pci_rating.toFixed(1)+'%');
+        $('#spCrack').text(d.crack_len>0?d.crack_len.toFixed(2)+' m':'None');
+        $('#spAlr').text(d.alr_area>0?d.alr_area.toFixed(2)+' m²':'None');
+        $('#spPatch').text(d.patching_area>0?d.patching_area.toFixed(2)+' m²':'None');
+        $('#spPot').text(d.pothole_area>0?d.pothole_area.toFixed(2)+' m²':'None');
+        var gps=parseGPS(imgName);
+        $('#spGps').text(gps?gps.lat.toFixed(6)+', '+gps.lng.toFixed(6):'N/A');
+
+        // Image
+        if(imgName) {
+            var ext = imgName.indexOf('.')>-1 ? '' : '.jpg';
+            $('#spImg').html('<img src="'+imagePath+imgName+ext+'" alt="Section '+(idx+1)+'">');
+        }
+
+        // Highlight marker
+        markers.forEach(function(mk){
+            mk.m.setStyle({weight:mk.idx===idx?3:2, radius:mk.idx===idx?12:8});
+            if(mk.idx===idx) mk.m.openTooltip();
+        });
+        if(gps) map.panTo([gps.lat,gps.lng],{animate:true});
+    }
+
+    // Close panel
+    $('#spClose').click(function(){ $('#sidePanel').removeClass('show'); });
+
+    // Section nav
+    $('#navPrev').click(function(){ if(activeIdx>0) selectSection(activeIdx-1); });
+    $('#navNext').click(function(){ if(activeIdx<details.length-1) selectSection(activeIdx+1); });
+
+    // Fullscreen image
+    $('#spImg').on('click',function(){
+        if(activeIdx<0) return;
+        var d=details[activeIdx], imgName=d.img_name||d.image_name||'';
+        var ext = imgName.indexOf('.')>-1 ? '' : '.jpg';
+        $('#imgModalImg').attr('src',imagePath+imgName+ext);
+        $('#imgModalInfo').text('Section '+(activeIdx+1)+' — '+d.pav_condition);
+        $('#imgModalPci').html(d.pci_rating.toFixed(1)+'%<small>PCI Score</small>');
+        $('#imgModalPci').css('background',pciColor(d.pci_rating));
+        $('#imgModal').addClass('show');
+        $('body').css('overflow','hidden');
+    });
+    function closeModal(){ $('#imgModal').removeClass('show'); $('body').css('overflow',''); }
+    $('#imgModalClose').click(closeModal);
+    $('#imgModal').click(function(e){if(e.target===this)closeModal();});
+    function navModal(dir){
+        var next=activeIdx+dir;
+        if(next>=0&&next<details.length){
+            selectSection(next);
+            var d=details[next], imgName=d.img_name||d.image_name||'';
+            var ext=imgName.indexOf('.')>-1?'':'.jpg';
+            $('#imgModalImg').attr('src',imagePath+imgName+ext);
+            $('#imgModalInfo').text('Section '+(next+1)+' — '+d.pav_condition);
+            $('#imgModalPci').html(d.pci_rating.toFixed(1)+'%<small>PCI Score</small>');
+            $('#imgModalPci').css('background',pciColor(d.pci_rating));
+        }
+    }
+    $(document).keydown(function(e){
+        if($('#imgModal').hasClass('show')){
+            if(e.key==='Escape') closeModal();
+            if(e.key==='ArrowLeft') navModal(-1);
+            if(e.key==='ArrowRight') navModal(1);
+        } else {
+            if(e.key==='ArrowLeft'&&activeIdx>0) selectSection(activeIdx-1);
+            if(e.key==='ArrowRight'&&activeIdx<details.length-1) selectSection(activeIdx+1);
+        }
+    });
+    $('#imgModalPrev').click(function(e){e.stopPropagation();navModal(-1);});
+    $('#imgModalNext').click(function(e){e.stopPropagation();navModal(1);});
+});
+</script>
+{% endblock %}

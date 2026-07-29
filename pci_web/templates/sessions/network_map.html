@@ -1,0 +1,1178 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Road Inspection — ZaminTwin.ai{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Road Inspection</li>
+{% endblock %}
+
+{% block style %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+.network-page { display: flex; height: calc(100vh - 52px); position: relative; overflow: hidden; }
+
+.right-panel-nav {
+    width: 340px; min-width: 340px; background: var(--panel-bg); color: var(--panel-text);
+    display: flex; flex-direction: column; z-index: 1001; position: relative;
+    border-left: 1px solid var(--panel-border); transition: margin 0.3s;
+    order: 2;
+}
+.right-panel-nav.collapsed { margin-right: -340px; }
+
+.panel-header {
+    padding: 16px 18px; border-bottom: 1px solid var(--panel-border);
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.panel-header h5 { margin: 0; font-size: 1rem; font-weight: 700; }
+.panel-header .count {
+    background: var(--panel-stat-bg); padding: 2px 8px; border-radius: 10px;
+    font-size: 0.7rem; color: var(--panel-text-secondary); font-family: 'JetBrains Mono', monospace;
+}
+.panel-close {
+    background: none; border: none; color: var(--panel-text-muted);
+    cursor: pointer; font-size: 1.1rem; padding: 0 0 0 8px; line-height: 1;
+}
+.panel-close:hover { color: var(--panel-text); }
+
+.panel-stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    padding: 12px 18px; border-bottom: 1px solid var(--panel-border); flex-shrink: 0;
+}
+.mini-stat { background: var(--panel-stat-bg); border-radius: 8px; padding: 8px 10px; }
+.mini-stat .label {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--panel-text-muted); font-weight: 600;
+}
+.mini-stat .value {
+    font-size: 1.1rem; font-weight: 700; margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.panel-upload {
+    padding: 12px 18px; border-bottom: 1px solid var(--panel-border); flex-shrink: 0;
+}
+.upload-btn {
+    width: 100%; padding: 10px; border-radius: 8px; border: 2px dashed var(--panel-border);
+    background: transparent; color: var(--panel-text-secondary); cursor: pointer;
+    font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all 0.2s; font-family: inherit;
+}
+.upload-btn:hover { border-color: #3b82f6; color: #60a5fa; background: rgba(59,130,246,0.05); }
+
+.session-list { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.session-list::-webkit-scrollbar { width: 4px; }
+.session-list::-webkit-scrollbar-thumb { background: var(--panel-text-faint); border-radius: 2px; }
+
+.s-card {
+    display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: 8px; margin-bottom: 4px;
+    cursor: pointer; transition: all 0.15s; border: 1px solid transparent;
+    text-decoration: none; color: inherit;
+}
+.s-card:hover { background: var(--panel-hover); text-decoration: none; color: inherit; }
+.s-card.hl { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.3); }
+.s-card.selected { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.2); }
+.s-card.new-upload { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.3); animation: newPulse 2s ease 2; }
+@keyframes newPulse { 0%,100% { border-color: rgba(34,197,94,0.3); } 50% { border-color: rgba(34,197,94,0.6); } }
+.s-card .s-check {
+    width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--panel-border);
+    background: transparent; cursor: pointer; flex-shrink: 0; margin-top: 2px;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+    font-size: 0.55rem; color: transparent;
+}
+.s-card .s-check:hover { border-color: var(--panel-text-muted); }
+.s-card.selected .s-check { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+.s-card .s-card-body { flex: 1; min-width: 0; }
+.selection-bar {
+    padding: 8px 18px; border-bottom: 1px solid var(--panel-border); flex-shrink: 0;
+    display: none; align-items: center; justify-content: space-between;
+    background: rgba(59,130,246,0.08);
+}
+.selection-bar.show { display: flex; }
+.selection-bar .sel-info { font-size: 0.72rem; color: var(--panel-text-secondary); }
+.selection-bar .sel-info strong { color: #60a5fa; }
+.sel-clear {
+    background: none; border: 1px solid var(--panel-border); color: var(--panel-text-secondary);
+    padding: 2px 10px; border-radius: 5px; font-size: 0.65rem; cursor: pointer; font-family: inherit;
+}
+.sel-clear:hover { border-color: var(--panel-text-muted); color: var(--panel-text); }
+.right-panel-nav .s-card .name {
+    font-size: 0.82rem; font-weight: 600; color: var(--panel-text) !important; margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.right-panel-nav .s-card .meta {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.7rem; color: var(--panel-text-muted) !important;
+}
+.right-panel-nav .s-card .meta .pv { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+.right-panel-nav .s-card .dt { font-size: 0.62rem; color: var(--panel-text-faint) !important; margin-top: 3px; }
+.s-card .acts { display: none; margin-top: 6px; gap: 6px; }
+.s-card:hover .acts { display: flex; }
+.ab {
+    padding: 3px 10px; border-radius: 5px; border: none; font-size: 0.68rem;
+    cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.15s;
+}
+.ab.v { background: #3b82f6; color: #fff; }
+.ab.v:hover { background: #2563eb; }
+.ab.d { background: rgba(239,68,68,0.15); color: #f87171; }
+.ab.d:hover { background: rgba(239,68,68,0.3); }
+
+.pci-good { color: #22c55e; }
+.pci-satisfactory { color: #84cc16; }
+.pci-fair { color: #eab308; }
+.pci-poor { color: #f97316; }
+.pci-very_poor, .pci-very-poor { color: #ef4444; }
+.pci-failed { color: #991b1b; }
+
+.empty-state { text-align: center; padding: 40px 20px; color: var(--panel-text-faint); }
+.empty-state i { font-size: 2rem; margin-bottom: 10px; display: block; }
+
+.map-area { flex: 1; position: relative; order: 1; }
+#networkMap { width: 100%; height: 100%; z-index: 1; }
+
+.panel-toggle {
+    position: absolute; top: 16px; right: 16px; z-index: 1002;
+    width: 36px; height: 36px; border-radius: 8px; border: none;
+    background: var(--panel-overlay-bg); color: var(--panel-text-secondary);
+    cursor: pointer; font-size: 0.85rem; display: none; align-items: center;
+    justify-content: center; backdrop-filter: blur(12px);
+    border: 1px solid var(--panel-border);
+}
+.panel-toggle:hover { background: rgba(59,130,246,0.3); color: #fff; }
+.right-panel-nav.collapsed ~ .map-area .panel-toggle { display: flex; }
+
+.map-legend {
+    position: absolute; bottom: 16px; left: 16px; z-index: 1000;
+    background: var(--panel-overlay-bg); backdrop-filter: blur(12px);
+    border: 1px solid var(--panel-border); border-radius: 10px;
+    padding: 12px 18px; display: flex; gap: 16px; align-items: center;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-line { width: 24px; height: 4px; border-radius: 2px; }
+.legend-label { font-size: 0.78rem; color: var(--panel-text-secondary); font-weight: 500; }
+
+.leaflet-popup-content-wrapper {
+    background: var(--panel-bg) !important; color: var(--panel-text) !important;
+    border-radius: 10px !important; border: 1px solid var(--panel-border) !important;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.2) !important;
+}
+.leaflet-popup-tip { background: var(--panel-bg) !important; }
+.leaflet-popup-content { margin: 10px 14px !important; font-size: 0.8rem !important; }
+.leaflet-control-attribution { font-size: 9px !important; background: rgba(0,0,0,0.5) !important; color: rgba(255,255,255,0.4) !important; }
+.leaflet-control-attribution a { color: rgba(255,255,255,0.5) !important; }
+
+.upload-overlay {
+    display: none; position: fixed; inset: 0; z-index: 2000;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center;
+}
+.upload-overlay.show { display: flex; }
+.upload-modal {
+    background: #fff; border-radius: 14px; width: 420px; max-width: 90vw;
+    overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.upload-modal-hd {
+    background: var(--panel-bg); color: var(--panel-text); padding: 16px 20px;
+    font-weight: 700; font-size: 0.95rem; display: flex;
+    align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--panel-border);
+}
+.upload-modal-hd button { background: none; border: none; color: var(--panel-text-muted); font-size: 1.3rem; cursor: pointer; }
+.upload-modal-bd { padding: 24px 20px; }
+.upload-drop {
+    border: 2px dashed #cbd5e1; border-radius: 10px; padding: 40px 20px;
+    text-align: center; cursor: pointer; transition: all 0.2s;
+}
+.upload-drop:hover { border-color: #3b82f6; background: #f8fafc; }
+.upload-drop.dragover { border-color: #3b82f6; background: #eff6ff; }
+.upload-drop i { font-size: 2rem; color: #94a3b8; margin-bottom: 8px; display: block; }
+.upload-drop p { color: #64748b; margin: 0; font-size: 0.85rem; }
+
+.upload-loading {
+    display: none; text-align: center; padding: 40px 20px;
+}
+.upload-loading.show { display: block; }
+.upload-spinner {
+    width: 48px; height: 48px; border: 4px solid #e2e8f0;
+    border-top-color: #3b82f6; border-radius: 50%;
+    animation: uploadSpin 0.8s linear infinite;
+    margin: 0 auto 16px;
+}
+@keyframes uploadSpin {
+    to { transform: rotate(360deg); }
+}
+.upload-loading p {
+    color: #64748b; margin: 0; font-size: 0.9rem; font-weight: 600;
+}
+.upload-loading p.sub {
+    font-size: 0.75rem; font-weight: 400; color: #94a3b8; margin-top: 6px;
+}
+
+/* ─── Session detail slide-in ────────────────────────────────────────── */
+.panel-view { display: none; flex-direction: column; flex: 1; min-height: 0; }
+.panel-view.active { display: flex; }
+
+.detail-header {
+    padding: 12px 18px; border-bottom: 1px solid var(--panel-border);
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.back-btn {
+    background: none; border: none; color: var(--panel-text-muted); cursor: pointer;
+    font-size: 0.9rem; padding: 4px; transition: color 0.15s;
+}
+.back-btn:hover { color: var(--panel-text); }
+.detail-header .session-name {
+    font-size: 0.9rem; font-weight: 700; flex: 1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    cursor: pointer;
+}
+.detail-header .session-name:hover { color: #60a5fa; }
+.rename-wrap { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.rename-wrap input {
+    flex: 1; min-width: 0; font-size: 0.85rem; font-weight: 700; font-family: inherit;
+    background: var(--panel-stat-bg); border: 1px solid rgba(96,165,250,0.5);
+    color: var(--panel-text); border-radius: 5px; padding: 3px 8px; outline: none;
+}
+.rename-wrap input:focus { border-color: #60a5fa; }
+.rename-wrap button {
+    background: #3b82f6; color: #fff; border: none; border-radius: 5px;
+    padding: 3px 10px; font-size: 0.7rem; font-weight: 600; cursor: pointer;
+    font-family: inherit; white-space: nowrap;
+}
+.rename-wrap button:hover { background: #2563eb; }
+.detail-header .detail-actions { display: flex; gap: 8px; align-items: center; }
+.detail-header .detail-actions a,
+.detail-header .detail-actions button {
+    font-size: 0.7rem; padding: 3px 8px; border-radius: 5px; border: none;
+    cursor: pointer; font-family: inherit; font-weight: 600; text-decoration: none;
+}
+
+.detail-stats {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;
+    padding: 10px 18px; border-bottom: 1px solid var(--panel-border); flex-shrink: 0;
+}
+.detail-stats .ds {
+    background: var(--panel-stat-bg); border-radius: 6px; padding: 6px 8px; text-align: center;
+}
+.detail-stats .ds .dl { font-size: 0.55rem; text-transform: uppercase; color: var(--panel-text-muted); letter-spacing: 0.05em; }
+.detail-stats .ds .dv { font-size: 0.95rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
+
+.det-filter-bar {
+    display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 18px;
+    border-bottom: 1px solid var(--panel-border); flex-shrink: 0;
+}
+.det-chip {
+    padding: 2px 8px; border-radius: 10px; border: 1px solid var(--panel-border);
+    background: transparent; color: var(--panel-text-secondary); font-size: 0.62rem;
+    cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.det-chip:hover { border-color: var(--panel-text-muted); color: var(--panel-text); }
+.det-chip.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+.det-list-panel { flex: 1; overflow-y: auto; padding: 6px 10px; }
+.det-list-panel::-webkit-scrollbar { width: 4px; }
+.det-list-panel::-webkit-scrollbar-thumb { background: var(--panel-text-faint); border-radius: 2px; }
+
+.det-item {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px;
+    cursor: pointer; transition: all 0.12s; margin-bottom: 2px;
+}
+.det-item:hover { background: var(--panel-hover); }
+.det-item.selected { background: rgba(59,130,246,0.15); }
+.det-item .sev-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.det-item .det-info { flex: 1; min-width: 0; }
+.det-item .det-name { font-size: 0.75rem; font-weight: 600; color: var(--panel-text); }
+.det-item .det-sub { font-size: 0.62rem; color: var(--panel-text-muted); margin-top: 1px; font-family: 'JetBrains Mono', monospace; }
+
+/* Detection popup on map */
+.leaflet-popup-content { margin: 0 !important; width: 320px !important; }
+.det-popup-imgwrap { position: relative; border-radius: 10px 10px 0 0; overflow: hidden; cursor: zoom-in; max-height: 240px; }
+.det-popup-img { width: 100%; display: block; }
+.det-popup-bbox { position: absolute; border: 2px solid #ef4444; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0,0,0,0.3), 0 0 8px rgba(239,68,68,0.4); pointer-events: none; }
+.det-popup-noimg { width: 100%; height: 80px; background: var(--panel-stat-bg); display: flex; align-items: center; justify-content: center; border-radius: 10px 10px 0 0; color: var(--panel-text-faint); font-size: 1.3rem; }
+.det-popup-zoom { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); color: #fff; border: none; border-radius: 4px; padding: 2px 6px; font-size: 0.65rem; cursor: pointer; opacity: 0.6; }
+.det-popup-zoom:hover { opacity: 1; }
+.det-popup-body { padding: 10px 12px 8px; }
+.det-popup-nav { display: flex; justify-content: space-between; align-items: center; padding: 0 12px 10px; }
+.det-popup-nav button { background: var(--panel-stat-bg); border: 1px solid var(--panel-border); color: var(--panel-text); padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-family: inherit; transition: all 0.15s; }
+.det-popup-nav button:hover { background: var(--panel-hover); }
+.det-popup-nav button:disabled { opacity: 0.25; cursor: default; }
+.det-popup-nav .nav-counter { font-size: 0.62rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="network-page">
+    <div class="right-panel-nav" id="leftPanel">
+
+        <!-- ═══ VIEW 1: Session List ═══ -->
+        <div class="panel-view active" id="viewList">
+            <div class="panel-header">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    {% if city_filter %}
+                    <a href="{% url 'sessions:city_selector' %}" style="color:var(--panel-text-muted);text-decoration:none;font-size:0.9rem;" title="Back to cities"><i class="fa fa-arrow-left"></i></a>
+                    {% endif %}
+                    <h5 style="margin:0;font-size:1rem;font-weight:700;">{% if city_filter %}{{ city_filter }}{% else %}<i class="fa fa-road" style="margin-right:8px;opacity:0.5;"></i> All Sessions{% endif %}</h5>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="count">{{ sessions|length }}</span>
+                    <button class="panel-close" id="panelCloseBtn">&times;</button>
+                </div>
+            </div>
+
+            <div class="panel-stats">
+                <div class="mini-stat">
+                    <div class="label">Surveyed</div>
+                    <div class="value count-up" data-target="{{ stats.total_distance|floatformat:1 }}" data-suffix=" km" data-decimals="1">0.0 km</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="label">Network PCI</div>
+                    <div class="value count-up" data-target="{% if stats.avg_pci %}{{ stats.avg_pci }}{% else %}0{% endif %}" data-suffix="" data-decimals="0" style="color:{% if stats.avg_pci >= 85 %}#22c55e{% elif stats.avg_pci >= 70 %}#84cc16{% elif stats.avg_pci >= 55 %}#eab308{% elif stats.avg_pci %}#ef4444{% else %}var(--panel-text-muted){% endif %};">{% if stats.avg_pci %}0{% else %}—{% endif %}</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="label">Defects</div>
+                    <div class="value count-up" data-target="{{ stats.total_defects }}" data-suffix="" data-decimals="0" style="color:#f97316;">0</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="label">Sessions</div>
+                    <div class="value count-up" data-target="{{ stats.total_sessions }}" data-suffix="" data-decimals="0">0</div>
+                </div>
+            </div>
+
+            <div class="panel-upload">
+                <button class="upload-btn" onclick="document.getElementById('uploadOverlay').classList.add('show');">
+                    <i class="fa fa-cloud-upload-alt"></i> Upload session (.zip)
+                </button>
+            </div>
+
+            <!-- Search box -->
+            <div style="padding:8px 18px;border-bottom:1px solid var(--panel-border);flex-shrink:0;">
+                <input type="text" id="roadSearchInput" placeholder="Search road name..."
+                       onkeyup="searchRoadName(this.value)"
+                       style="width:100%;background:var(--panel-stat-bg);border:1px solid var(--panel-border);color:var(--panel-text);padding:8px 12px;border-radius:8px;font-size:0.78rem;font-family:inherit;outline:none;box-sizing:border-box;"
+                       onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor=''" />
+            </div>
+
+            <!-- Filter & sort -->
+            <div style="padding:6px 18px;border-bottom:1px solid var(--panel-border);flex-shrink:0;display:flex;align-items:center;gap:6px;">
+                <select id="timeFilter" onchange="filterByTime(this.value)"
+                        style="flex:1;background:var(--panel-stat-bg);border:1px solid var(--panel-border);color:var(--panel-text);padding:4px 8px;border-radius:6px;font-size:0.72rem;font-family:inherit;">
+                    <option value="all" selected>All surveys</option>
+                    <option value="latest">Latest per road</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                </select>
+                <select id="sortFilter" onchange="sortSessions(this.value)"
+                        style="flex:1;background:var(--panel-stat-bg);border:1px solid var(--panel-border);color:var(--panel-text);padding:4px 8px;border-radius:6px;font-size:0.72rem;font-family:inherit;">
+                    <option value="date" selected>Newest first</option>
+                    <option value="pci_asc">Worst PCI first</option>
+                    <option value="pci_desc">Best PCI first</option>
+                    <option value="defects">Most defects</option>
+                </select>
+            </div>
+
+            <div class="selection-bar" id="selectionBar">
+                <span class="sel-info"><strong id="selCount">0</strong> selected</span>
+                <div style="display:flex;gap:6px;">
+                    <button class="sel-clear" onclick="viewSelectedSessions()" style="background:#3b82f6;color:#fff;border-color:#3b82f6;"><i class="fa fa-eye" style="margin-right:4px;"></i>View</button>
+                    <button class="sel-clear" onclick="clearSelection()">Clear</button>
+                </div>
+            </div>
+            <div class="session-list">
+                {% for s in sessions %}
+                <div class="s-card" data-id="{{ s.pk }}"
+                     data-lat="{{ s.min_lat|default:'41.31' }}" data-lon="{{ s.min_lon|default:'69.28' }}"
+                     data-mlat="{{ s.max_lat|default:'41.32' }}" data-mlon="{{ s.max_lon|default:'69.29' }}"
+                     data-url="{% url 'sessions:detail' s.pk %}"
+                     data-year="{{ s.start_time|date:'Y' }}" data-road="{{ s.road_name }}"
+                     data-name="{{ s.display_name }}" data-pci="{{ s.avg_pci|floatformat:1 }}"
+                     data-rating="{{ s.condition_rating }}" data-dist="{{ s.distance_km|floatformat:1 }}"
+                     data-defects="{{ s.total_defects }}" data-date="{{ s.start_time|date:'M d, Y' }}">
+                    <div class="s-check" onclick="event.stopPropagation();toggleSelect(this.closest('.s-card'));"><i class="fa fa-check"></i></div>
+                    <div class="s-card-body">
+                        <div class="name">{{ s.display_name }}</div>
+                        <div class="meta">
+                            <span class="pv pci-{{ s.condition_rating }}">PCI {{ s.avg_pci|floatformat:0 }}</span>
+                            <span>{{ s.distance_km|floatformat:1 }} km</span>
+                            <span>{{ s.total_defects }} defects</span>
+                        </div>
+                        <div class="dt">{{ s.session_id }} · {{ s.created_at|date:"M d, Y" }}</div>
+                        <div class="acts">
+                            <a class="ab v" href="{% url 'sessions:detail' s.pk %}" onclick="event.stopPropagation();"><i class="fa fa-expand"></i> Detail</a>
+                            <form method="post" action="{% url 'sessions:delete' s.pk %}" style="display:inline;" onsubmit="return confirm('Delete this session?');">{% csrf_token %}
+                                <button type="submit" class="ab d" onclick="event.stopPropagation();"><i class="fa fa-trash"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <i class="fa fa-satellite-dish"></i>
+                    <p><strong>No sessions yet</strong></p>
+                    <p style="margin-top:4px;font-size:0.75rem;">Upload your first inspection</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ═══ VIEW 2: Session Detail ═══ -->
+        <div class="panel-view" id="viewDetail">
+            <div class="detail-header">
+                <button class="back-btn" onclick="closeSessionDetail()"><i class="fa fa-arrow-left"></i></button>
+                <span class="session-name" id="detailName" onclick="startRenameSession()" title="Click to rename"></span>
+                <div class="detail-actions">
+                    <span id="detailDate" style="font-size:0.62rem;color:var(--panel-text-muted);"></span>
+                    <a id="detailOpenLink" href="#" style="background:#3b82f6;color:#fff;border-radius:5px;padding:3px 8px;font-size:0.68rem;font-weight:600;text-decoration:none;"><i class="fa fa-expand" style="margin-right:3px;"></i>Full View</a>
+                    <a id="detailPdfLink" href="#" style="color:#60a5fa;font-size:0.68rem;" title="PDF Report"><i class="fa fa-file-pdf"></i></a>
+                </div>
+            </div>
+            <div class="detail-stats" id="detailStats"></div>
+            <div class="det-filter-bar" id="detFilterBar"></div>
+            <div class="det-list-panel" id="detListPanel"></div>
+        </div>
+
+    </div>
+
+    <div class="map-area">
+        <button class="panel-toggle" id="panelToggle"><i class="fa fa-bars"></i></button>
+        <div id="networkMap"></div>
+        <div class="map-legend">
+            <div class="legend-item"><div class="legend-line" style="background:#22c55e;"></div><span class="legend-label">Good</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#84cc16;"></div><span class="legend-label">Satisfactory</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#eab308;"></div><span class="legend-label">Fair</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#ea580c;"></div><span class="legend-label">Poor</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#ef4444;"></div><span class="legend-label">Very Poor</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#7f1d1d;"></div><span class="legend-label">Failed</span></div>
+        </div>
+    </div>
+
+    <div class="upload-overlay" id="uploadOverlay">
+        <div class="upload-modal">
+            <div class="upload-modal-hd">
+                <span><i class="fa fa-cloud-upload-alt" style="margin-right:8px;"></i> Upload Session</span>
+                <button onclick="document.getElementById('uploadOverlay').classList.remove('show');">&times;</button>
+            </div>
+            <div class="upload-modal-bd">
+                <form method="post" action="{% url 'sessions:upload' %}" enctype="multipart/form-data" id="uploadForm">
+                    {% csrf_token %}
+                    <div class="upload-drop" id="dropZone" onclick="document.getElementById('zipInput').click();">
+                        <i class="fa fa-file-archive"></i>
+                        <p><strong>Drop .zip files here or click to browse</strong></p>
+                        <p style="font-size:0.72rem;color:#94a3b8;margin-top:4px;">Multiple files allowed — each zip: metadata.json + detections.jsonl + gps_track.jsonl</p>
+                        <input type="file" name="session_zip" id="zipInput" accept=".zip" multiple style="display:none;"
+                               onchange="showUploadLoading();document.getElementById('uploadForm').submit();">
+                    </div>
+                </form>
+                <div class="upload-loading" id="uploadLoading">
+                    <div class="upload-spinner"></div>
+                    <p>Uploading...</p>
+                    <p class="sub">Processing session...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scriptBlock %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var NET = {{ network_geojson|safe }};
+var DETS = {{ detections_geojson|safe }};
+var map = L.map('networkMap', { center: [41.311, 69.280], zoom: 12, zoomControl: false });
+
+var _darkTiles = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+var _lightTiles = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+var _tileOpts = { attribution: '&copy; OSM &copy; CARTO', subdomains: 'abcd', maxZoom: 19 };
+var _isDark = (localStorage.getItem('theme') || 'light') === 'dark';
+var _tileLayer = L.tileLayer(_isDark ? _darkTiles : _lightTiles, _tileOpts).addTo(map);
+window.addEventListener('themeChanged', function(e) {
+    map.removeLayer(_tileLayer);
+    _tileLayer = L.tileLayer(e.detail.dark ? _darkTiles : _lightTiles, _tileOpts).addTo(map);
+});
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+var allBounds = L.latLngBounds();
+var sLayers = {};
+var hlSid = null;
+var sevColors = { critical: '#ef4444', high: '#f97316', medium: '#eab308', low: '#84cc16' };
+var POTHOLE_TYPES = ['pothole', 'D40', 'D50', 'd40', 'd50'];
+function isPothole(rawType) { return POTHOLE_TYPES.indexOf(rawType) !== -1; }
+function detColorNet(rawType, severity) {
+    if (isPothole(rawType)) return '#ef4444';
+    return sevColors[severity] || '#eab308';
+}
+
+if (NET && NET.features) {
+    NET.features.forEach(function(f) {
+        if (f.geometry.type !== 'LineString') return;
+        var co = f.geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
+        var p = f.properties, sid = p.session_id;
+
+        var ln = L.polyline(co, { color: p.color || '#22c55e', weight: 5, opacity: 0.85, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+
+        ln.on('mouseover', function() { this.setStyle({ weight: 8, opacity: 1 }); });
+        ln.on('mouseout', function() {
+            var dim = hlSid && parseInt(sid) !== hlSid;
+            this.setStyle({ weight: dim ? 2 : 5, opacity: dim ? 0.2 : 0.85 });
+        });
+        ln.on('click', function() { openSessionDetail(sid); });
+        co.forEach(function(c) { allBounds.extend(c); });
+        if (!sLayers[sid]) sLayers[sid] = [];
+        sLayers[sid].push(ln);
+    });
+}
+if (allBounds.isValid()) map.fitBounds(allBounds, { padding: [40, 40] });
+
+// ─── Detection markers (show at zoom >= 14) ────────────────────────────
+var detLayer = L.layerGroup();
+var detMarkerMap = {};
+
+if (DETS && DETS.features) {
+    DETS.features.forEach(function(f) {
+        var p = f.properties;
+        var clr = detColorNet(p.raw_type, p.severity);
+        var icon = L.divIcon({
+            className: '', iconSize: [10, 10], iconAnchor: [5, 5],
+            html: '<div style="width:10px;height:10px;border-radius:50%;border:2px solid #0f172a;background:' + clr + ';"></div>',
+        });
+        var m = L.marker([f.geometry.coordinates[1], f.geometry.coordinates[0]], { icon: icon });
+        m.on('click', function() {
+            if (activeSessionId && p.session_id === activeSessionId) {
+                selectDetOnMap(p.id);
+            } else {
+                openSessionDetail(p.session_id, p.id);
+            }
+        });
+        detMarkerMap[p.id] = m;
+        detLayer.addLayer(m);
+    });
+}
+
+function updateDetVis() {
+    if (map.getZoom() >= 14) { if (!map.hasLayer(detLayer)) map.addLayer(detLayer); }
+    else { if (map.hasLayer(detLayer)) map.removeLayer(detLayer); }
+}
+map.on('zoomend', updateDetVis);
+updateDetVis();
+
+// ─── Session card hover → highlight on map ──────────────────────────────
+function hl(sid) {
+    hlSid = sid;
+    Object.keys(sLayers).forEach(function(k) {
+        var m = parseInt(k) === sid;
+        sLayers[k].forEach(function(l) { l.setStyle({ opacity: m ? 1 : 0.2, weight: m ? 7 : 2 }); });
+    });
+}
+function resetHl() {
+    hlSid = null;
+    Object.keys(sLayers).forEach(function(k) {
+        sLayers[k].forEach(function(l) { l.setStyle({ opacity: 0.85, weight: 5 }); });
+    });
+    document.querySelectorAll('.s-card').forEach(function(c) { c.classList.remove('hl'); });
+}
+
+document.querySelectorAll('.s-card').forEach(function(card) {
+    card.addEventListener('mouseenter', function() {
+        if (activeSessionId) return;
+        var sid = parseInt(this.dataset.id);
+        hl(sid);
+        this.classList.add('hl');
+    });
+    card.addEventListener('mouseleave', function() {
+        if (activeSessionId) return;
+        resetHl();
+    });
+    card.addEventListener('click', function(e) {
+        if (e.target.closest('.s-check') || e.target.closest('.ab') || e.target.closest('form')) return;
+        openSessionDetail(parseInt(this.dataset.id));
+    });
+});
+
+// ─── Panel toggle ────────────────────────────────────────────────────────
+document.getElementById('panelCloseBtn').addEventListener('click', function() {
+    document.getElementById('leftPanel').classList.add('collapsed');
+    setTimeout(function() { map.invalidateSize(); }, 350);
+});
+document.getElementById('panelToggle').addEventListener('click', function() {
+    document.getElementById('leftPanel').classList.remove('collapsed');
+    setTimeout(function() { map.invalidateSize(); }, 350);
+});
+
+// ─── Upload modal ────────────────────────────────────────────────────────
+function showUploadLoading() {
+    document.getElementById('dropZone').style.display = 'none';
+    document.getElementById('uploadLoading').classList.add('show');
+}
+document.getElementById('uploadOverlay').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('show');
+});
+document.getElementById('uploadForm').addEventListener('submit', function() {
+    showUploadLoading();
+});
+var dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('dragover'); });
+dz.addEventListener('dragleave', function() { this.classList.remove('dragover'); });
+dz.addEventListener('drop', function(e) {
+    e.preventDefault(); this.classList.remove('dragover');
+    var files = e.dataTransfer.files;
+    if (files.length) {
+        var allZip = Array.from(files).every(function(f) { return f.name.toLowerCase().endsWith('.zip'); });
+        if (allZip) {
+            document.getElementById('zipInput').files = files;
+            showUploadLoading();
+            document.getElementById('uploadForm').submit();
+        }
+    }
+});
+
+// ─── Road name search ────────────────────────────────────────────────────
+function searchRoadName(query) {
+    var q = query.toLowerCase().trim();
+    document.querySelectorAll('.s-card').forEach(function(card) {
+        var name = (card.dataset.name || '').toLowerCase();
+        var road = (card.dataset.road || '').toLowerCase();
+        var show = !q || name.indexOf(q) !== -1 || road.indexOf(q) !== -1;
+        card.style.display = show ? '' : 'none';
+        var id = parseInt(card.dataset.id);
+        if (sLayers[id]) {
+            sLayers[id].forEach(function(l) {
+                if (show) { if (!map.hasLayer(l)) l.addTo(map); }
+                else { if (map.hasLayer(l)) map.removeLayer(l); }
+            });
+        }
+    });
+}
+
+// ─── Time filter ─────────────────────────────────────────────────────────
+function filterByTime(mode) {
+    var latestByRoad = {};
+    document.querySelectorAll('.s-card').forEach(function(card) {
+        var road = card.dataset.road;
+        var id = parseInt(card.dataset.id);
+        if (road && (!latestByRoad[road] || id > latestByRoad[road])) {
+            latestByRoad[road] = id;
+        }
+    });
+
+    document.querySelectorAll('.s-card').forEach(function(card) {
+        var id = parseInt(card.dataset.id);
+        var year = card.dataset.year;
+        var road = card.dataset.road;
+        var show = true;
+
+        if (mode === 'latest') {
+            show = !road || latestByRoad[road] === id;
+        } else if (mode === '2025' || mode === '2024') {
+            show = year === mode;
+        }
+
+        card.style.display = show ? '' : 'none';
+
+        if (sLayers[id]) {
+            sLayers[id].forEach(function(l) {
+                if (show) { if (!map.hasLayer(l)) l.addTo(map); }
+                else { if (map.hasLayer(l)) map.removeLayer(l); }
+            });
+        }
+    });
+}
+
+// ─── Sort sessions ───────────────────────────────────────────────────────
+function sortSessions(mode) {
+    var list = document.querySelector('.session-list');
+    var cards = Array.from(list.querySelectorAll('.s-card'));
+    cards.sort(function(a, b) {
+        if (mode === 'pci_asc') return (parseFloat(a.dataset.pci) || 100) - (parseFloat(b.dataset.pci) || 100);
+        if (mode === 'pci_desc') return (parseFloat(b.dataset.pci) || 0) - (parseFloat(a.dataset.pci) || 0);
+        if (mode === 'defects') return (parseInt(b.dataset.defects) || 0) - (parseInt(a.dataset.defects) || 0);
+        // date: newest first (higher id = newer)
+        return parseInt(b.dataset.id) - parseInt(a.dataset.id);
+    });
+    cards.forEach(function(c) { list.appendChild(c); });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MULTI-SELECT SESSIONS
+// ═══════════════════════════════════════════════════════════════════════════
+var selectedSessions = new Set();
+
+function toggleSelect(card) {
+    var sid = parseInt(card.dataset.id);
+    if (selectedSessions.has(sid)) {
+        selectedSessions.delete(sid);
+        card.classList.remove('selected');
+    } else {
+        selectedSessions.add(sid);
+        card.classList.add('selected');
+    }
+    updateSelection();
+}
+
+function clearSelection() {
+    selectedSessions.clear();
+    document.querySelectorAll('.s-card').forEach(function(c) { c.classList.remove('selected'); });
+    updateSelection();
+}
+
+function updateSelection() {
+    var bar = document.getElementById('selectionBar');
+    var count = selectedSessions.size;
+
+    if (count > 0) {
+        bar.classList.add('show');
+        document.getElementById('selCount').textContent = count;
+
+        // Dim unselected sessions on map, highlight selected
+        Object.keys(sLayers).forEach(function(k) {
+            var isSel = selectedSessions.has(parseInt(k));
+            sLayers[k].forEach(function(l) {
+                l.setStyle({ opacity: isSel ? 1 : 0.1, weight: isSel ? 6 : 2 });
+            });
+        });
+
+        // Fit map to selected sessions
+        var selBounds = L.latLngBounds();
+        document.querySelectorAll('.s-card.selected').forEach(function(c) {
+            selBounds.extend([parseFloat(c.dataset.lat), parseFloat(c.dataset.lon)]);
+            selBounds.extend([parseFloat(c.dataset.mlat), parseFloat(c.dataset.mlon)]);
+        });
+        if (selBounds.isValid()) map.fitBounds(selBounds, { padding: [50, 50], maxZoom: 16, animate: true, duration: 0.5 });
+    } else {
+        bar.classList.remove('show');
+        // Restore all sessions
+        Object.keys(sLayers).forEach(function(k) {
+            sLayers[k].forEach(function(l) { l.setStyle({ opacity: 0.85, weight: 5 }); });
+        });
+        if (allBounds.isValid()) map.fitBounds(allBounds, { padding: [40, 40], animate: true, duration: 0.5 });
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SESSION DETAIL SLIDE-IN
+// ═══════════════════════════════════════════════════════════════════════════
+var activeSessionId = null;   // single session id or 'multi'
+var activeSessionIds = [];    // list of ids when multi
+var activeDetFilter = 'all';
+var sessionDets = [];
+var detPopup = L.popup({ closeButton: true, maxWidth: 300, minWidth: 280 });
+var currentDetIdx = -1;
+
+function viewSelectedSessions() {
+    if (selectedSessions.size === 0) return;
+    if (selectedSessions.size === 1) {
+        openSessionDetail(Array.from(selectedSessions)[0]);
+        return;
+    }
+    var sids = Array.from(selectedSessions);
+    activeSessionIds = sids;
+    activeSessionId = 'multi';
+    map.closePopup();
+
+    // Switch views
+    document.getElementById('viewList').classList.remove('active');
+    document.getElementById('viewDetail').classList.add('active');
+
+    // Aggregate stats
+    var totalDist = 0, totalDefs = 0, pciSum = 0, pciCount = 0;
+    sids.forEach(function(sid) {
+        var card = document.querySelector('.s-card[data-id="' + sid + '"]');
+        if (!card) return;
+        totalDist += parseFloat(card.dataset.dist) || 0;
+        totalDefs += parseInt(card.dataset.defects) || 0;
+        var p = parseFloat(card.dataset.pci);
+        if (!isNaN(p)) { pciSum += p; pciCount++; }
+    });
+    var avgPci = pciCount > 0 ? (pciSum / pciCount).toFixed(1) : '—';
+    var pciVal = parseFloat(avgPci);
+    var pciColor = pciVal >= 85 ? '#22c55e' : pciVal >= 70 ? '#84cc16' : pciVal >= 55 ? '#eab308' : pciVal >= 40 ? '#ea580c' : '#ef4444';
+
+    // Header
+    document.getElementById('detailName').textContent = sids.length + ' Sessions Selected';
+    document.getElementById('detailDate').textContent = '';
+    document.getElementById('detailOpenLink').href = '/sessions/review/?ids=' + sids.join(',');
+    document.getElementById('detailOpenLink').innerHTML = '<i class="fa fa-expand" style="margin-right:3px;"></i>Review All';
+    document.getElementById('detailOpenLink').style.display = '';
+    document.getElementById('detailPdfLink').style.display = 'none';
+
+    // Stats
+    document.getElementById('detailStats').innerHTML =
+        '<div class="ds"><div class="dl">Avg PCI</div><div class="dv" style="color:' + pciColor + '">' + avgPci + '</div></div>' +
+        '<div class="ds"><div class="dl">Distance</div><div class="dv">' + totalDist.toFixed(1) + ' km</div></div>' +
+        '<div class="ds"><div class="dl">Defects</div><div class="dv" style="color:#f97316">' + totalDefs + '</div></div>';
+
+    // Highlight on map
+    Object.keys(sLayers).forEach(function(k) {
+        var isSel = selectedSessions.has(parseInt(k));
+        sLayers[k].forEach(function(l) { l.setStyle({ opacity: isSel ? 1 : 0.1, weight: isSel ? 6 : 2 }); });
+    });
+
+    // Show report download + filter bar
+    document.getElementById('detFilterBar').innerHTML =
+        '<a href="/sessions/review/report.pdf?ids=' + sids.join(',') + '" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;background:#3b82f6;color:#fff;border-radius:6px;font-size:0.72rem;font-weight:600;text-decoration:none;"><i class="fa fa-file-pdf"></i> PDF Report</a>';
+
+    var listHtml = '';
+    sids.forEach(function(sid) {
+        var card = document.querySelector('.s-card[data-id="' + sid + '"]');
+        if (!card) return;
+        var pci = parseFloat(card.dataset.pci);
+        var pc = pci >= 85 ? '#22c55e' : pci >= 70 ? '#84cc16' : pci >= 55 ? '#eab308' : pci >= 40 ? '#ea580c' : '#ef4444';
+        listHtml += '<div class="det-item" style="flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px;border:1px solid var(--panel-border);border-radius:8px;margin-bottom:6px;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+                '<span style="font-weight:700;font-size:0.82rem;color:var(--panel-text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + card.dataset.name + '</span>' +
+                '<span style="font-family:JetBrains Mono,monospace;font-weight:700;font-size:0.8rem;color:' + pc + ';">PCI ' + card.dataset.pci + '</span>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:8px;font-size:0.65rem;color:var(--panel-text-muted);">' +
+                '<span>' + card.dataset.date + '</span>' +
+                '<span>' + card.dataset.dist + ' km</span>' +
+                '<span>' + card.dataset.defects + ' defects</span>' +
+            '</div>' +
+            '<div style="display:flex;gap:6px;margin-top:2px;">' +
+                '<a href="' + card.dataset.url + '" style="flex:1;text-align:center;padding:5px;background:#3b82f6;color:#fff;border-radius:5px;font-size:0.7rem;font-weight:600;text-decoration:none;"><i class="fa fa-eye" style="margin-right:4px;"></i>Detail & Review</a>' +
+                '<a href="/sessions/' + sid + '/report.pdf" style="padding:5px 10px;background:var(--panel-stat-bg);color:#60a5fa;border-radius:5px;font-size:0.7rem;text-decoration:none;" title="PDF Report"><i class="fa fa-file-pdf"></i></a>' +
+                '<button onclick="event.stopPropagation();openSessionDetail(' + sid + ');" style="padding:5px 10px;background:var(--panel-stat-bg);color:var(--panel-text-secondary);border:none;border-radius:5px;font-size:0.7rem;cursor:pointer;" title="Quick view"><i class="fa fa-map-marker-alt"></i></button>' +
+            '</div>' +
+        '</div>';
+    });
+    document.getElementById('detListPanel').innerHTML = listHtml;
+}
+
+function openSessionDetail(sid, focusDetId) {
+    activeSessionId = sid;
+    activeSessionIds = [sid];
+    activeDetFilter = 'all';
+    map.closePopup();
+
+    var card = document.querySelector('.s-card[data-id="' + sid + '"]');
+    if (!card) return;
+
+    // Switch views
+    document.getElementById('viewList').classList.remove('active');
+    document.getElementById('viewDetail').classList.add('active');
+
+    // Populate header
+    document.getElementById('detailName').textContent = card.dataset.name;
+    document.getElementById('detailDate').textContent = card.dataset.date;
+    document.getElementById('detailOpenLink').href = card.dataset.url;
+    document.getElementById('detailOpenLink').innerHTML = '<i class="fa fa-expand" style="margin-right:3px;"></i>Full View';
+    document.getElementById('detailOpenLink').style.display = '';
+    document.getElementById('detailPdfLink').href = '/sessions/' + sid + '/report.pdf';
+    document.getElementById('detailPdfLink').style.display = '';
+
+    // Stats
+    var pci = parseFloat(card.dataset.pci);
+    var pciColor = pci >= 85 ? '#22c55e' : pci >= 70 ? '#84cc16' : pci >= 55 ? '#eab308' : pci >= 40 ? '#ea580c' : '#ef4444';
+    document.getElementById('detailStats').innerHTML =
+        '<div class="ds"><div class="dl">PCI</div><div class="dv" style="color:' + pciColor + '">' + card.dataset.pci + '</div></div>' +
+        '<div class="ds"><div class="dl">Distance</div><div class="dv">' + card.dataset.dist + ' km</div></div>' +
+        '<div class="ds"><div class="dl">Defects</div><div class="dv" style="color:#f97316">' + card.dataset.defects + '</div></div>';
+
+    // Highlight on map
+    hl(sid);
+    var b = [[parseFloat(card.dataset.lat), parseFloat(card.dataset.lon)],
+             [parseFloat(card.dataset.mlat), parseFloat(card.dataset.mlon)]];
+    map.fitBounds(b, { padding: [50, 50], maxZoom: 16, animate: true, duration: 0.5 });
+
+    // Build detection list
+    buildSessionDets([sid]);
+
+    if (focusDetId) {
+        setTimeout(function() { selectDetOnMap(focusDetId); }, 300);
+    }
+}
+
+function buildSessionDets(sids) {
+    sessionDets = [];
+    var sidSet = new Set(sids);
+    if (DETS && DETS.features) {
+        DETS.features.forEach(function(f) {
+            if (sidSet.has(f.properties.session_id)) {
+                sessionDets.push({
+                    id: f.properties.id,
+                    type: f.properties.type,
+                    raw_type: f.properties.raw_type,
+                    severity: f.properties.severity,
+                    confidence: f.properties.confidence,
+                    distance_km: f.properties.distance_km,
+                    thumbnail: f.properties.thumbnail,
+                    bbox: f.properties.bbox,
+                    frame_bboxes: f.properties.frame_bboxes,
+                    frame: f.properties.frame,
+                    lat: f.geometry.coordinates[1],
+                    lon: f.geometry.coordinates[0],
+                    session_id: f.properties.session_id,
+                });
+            }
+        });
+    }
+    sessionDets.sort(function(a, b) { return a.distance_km - b.distance_km; });
+
+    // Build filter chips
+    var types = {};
+    sessionDets.forEach(function(d) { types[d.raw_type] = d.type; });
+    var filterHtml = '<button class="det-chip active" onclick="filterSessionDets(\'all\',this)">All (' + sessionDets.length + ')</button>';
+    Object.keys(types).forEach(function(raw) {
+        var count = sessionDets.filter(function(d) { return d.raw_type === raw; }).length;
+        filterHtml += '<button class="det-chip" onclick="filterSessionDets(\'' + raw + '\',this)">' + types[raw] + ' (' + count + ')</button>';
+    });
+    document.getElementById('detFilterBar').innerHTML = filterHtml;
+
+    // Render detection list
+    renderDetList();
+
+    // If a specific detection was requested, select it
+    if (focusDetId) {
+        setTimeout(function() { selectDetOnMap(focusDetId); }, 300);
+    }
+}
+
+function closeSessionDetail() {
+    activeSessionId = null;
+    activeSessionIds = [];
+    sessionDets = [];
+    map.closePopup();
+
+    document.getElementById('viewDetail').classList.remove('active');
+    document.getElementById('viewList').classList.add('active');
+    document.getElementById('detailOpenLink').style.display = '';
+    document.getElementById('detailPdfLink').style.display = '';
+
+    // If sessions were selected, keep selection highlighting
+    if (selectedSessions.size > 0) {
+        updateSelection();
+    } else {
+        resetHl();
+        if (allBounds.isValid()) map.fitBounds(allBounds, { padding: [40, 40], animate: true, duration: 0.5 });
+    }
+}
+
+function startRenameSession() {
+    if (!activeSessionId) return;
+    var nameEl = document.getElementById('detailName');
+    var currentName = nameEl.textContent;
+    var wrap = document.createElement('div');
+    wrap.className = 'rename-wrap';
+    wrap.id = 'renameWrap';
+    var inp = document.createElement('input');
+    inp.type = 'text';
+    inp.value = currentName;
+    var btn = document.createElement('button');
+    btn.textContent = 'Save';
+    wrap.appendChild(inp);
+    wrap.appendChild(btn);
+    nameEl.style.display = 'none';
+    nameEl.parentNode.insertBefore(wrap, nameEl.nextSibling);
+    inp.focus();
+    inp.select();
+    btn.onclick = function() { submitRename(inp.value.trim()); };
+    inp.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') submitRename(inp.value.trim());
+        if (e.key === 'Escape') cancelRename();
+    });
+}
+
+function cancelRename() {
+    var wrap = document.getElementById('renameWrap');
+    if (wrap) wrap.remove();
+    document.getElementById('detailName').style.display = '';
+}
+
+function submitRename(newName) {
+    if (!newName || !activeSessionId) return;
+    var csrftoken = document.cookie.match(/csrftoken=([^;]+)/)[1];
+    fetch('/sessions/' + activeSessionId + '/rename/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+        body: JSON.stringify({ road_name: newName })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        var displayName = data.display_name || data.road_name || newName;
+        document.getElementById('detailName').textContent = displayName;
+        cancelRename();
+        var card = document.querySelector('.s-card[data-id="' + activeSessionId + '"]');
+        if (card) {
+            card.dataset.name = displayName;
+            var nameDiv = card.querySelector('.name');
+            if (nameDiv) nameDiv.textContent = displayName;
+        }
+        showToast('Road name saved', 'success');
+    }).catch(function(err) {
+        console.error('Rename failed:', err);
+        showToast('Rename failed', 'error');
+    });
+}
+
+function filterSessionDets(type, btn) {
+    activeDetFilter = type;
+    document.querySelectorAll('.det-chip').forEach(function(c) { c.classList.remove('active'); });
+    btn.classList.add('active');
+    renderDetList();
+}
+
+function getVisibleDets() {
+    if (activeDetFilter === 'all') return sessionDets;
+    return sessionDets.filter(function(d) { return d.raw_type === activeDetFilter; });
+}
+
+function renderDetList() {
+    var visible = getVisibleDets();
+    var html = '';
+    visible.forEach(function(d, i) {
+        var clr = detColorNet(d.raw_type, d.severity);
+        html += '<div class="det-item" data-idx="' + i + '" data-id="' + d.id + '" onclick="selectDetOnMap(' + d.id + ')">' +
+            '<div class="sev-dot" style="background:' + clr + '"></div>' +
+            '<div class="det-info">' +
+                '<div class="det-name">' + d.type + '</div>' +
+                '<div class="det-sub">' + d.distance_km.toFixed(2) + ' km · ' + d.severity + ' · ' + Math.round(d.confidence * 100) + '%</div>' +
+            '</div>' +
+        '</div>';
+    });
+    if (!html) html = '<div style="text-align:center;padding:20px;color:var(--panel-text-faint);font-size:0.75rem;">No detections</div>';
+    document.getElementById('detListPanel').innerHTML = html;
+}
+
+function selectDetOnMap(detId) {
+    var visible = getVisibleDets();
+    var idx = visible.findIndex(function(d) { return d.id === detId; });
+    if (idx === -1) return;
+    currentDetIdx = idx;
+    showDetPopup(visible, idx);
+}
+
+function showDetPopup(visible, idx) {
+    var det = visible[idx];
+    var total = visible.length;
+
+    // Highlight in list
+    document.querySelectorAll('.det-item').forEach(function(c) { c.classList.remove('selected'); });
+    var item = document.querySelector('.det-item[data-id="' + det.id + '"]');
+    if (item) { item.classList.add('selected'); item.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+
+    var sevColor = detColorNet(det.raw_type, det.severity);
+
+    var imgHtml;
+    if (det.thumbnail) {
+        var bboxHtml = '';
+        var imgW = 1920, imgH = 1080;
+        var bboxes = det.frame_bboxes || (det.bbox ? [{ bbox: det.bbox, type: det.type, raw_type: det.raw_type, id: det.id }] : []);
+        bboxes.forEach(function(b) {
+            if (!b.bbox || b.bbox.length !== 4) return;
+            var bLeft = (b.bbox[0] / imgW * 100).toFixed(2);
+            var bTop = (b.bbox[1] / imgH * 100).toFixed(2);
+            var bW = ((b.bbox[2] - b.bbox[0]) / imgW * 100).toFixed(2);
+            var bH = ((b.bbox[3] - b.bbox[1]) / imgH * 100).toFixed(2);
+            var bboxColor = isPothole(b.raw_type) ? '#ef4444' : sevColor;
+            var isCurrent = (b.id === det.id);
+            var opacity = isCurrent ? 1 : 0.5;
+            bboxHtml += '<div class="det-popup-bbox" style="left:' + bLeft + '%;top:' + bTop + '%;width:' + bW + '%;height:' + bH + '%;border-color:' + bboxColor + ';opacity:' + opacity + ';box-shadow:0 0 0 1px rgba(0,0,0,0.3),0 0 8px ' + bboxColor + '66;"></div>';
+            bboxHtml += '<div style="position:absolute;left:' + bLeft + '%;top:' + bTop + '%;transform:translateY(-100%);background:' + bboxColor + ';color:#fff;font-size:0.55rem;padding:1px 4px;border-radius:2px;white-space:nowrap;pointer-events:none;opacity:' + opacity + ';">' + b.type + '</div>';
+        });
+        imgHtml = '<div class="det-popup-imgwrap"><img class="det-popup-img" src="' + det.thumbnail + '">' + bboxHtml +
+                  '<button class="det-popup-zoom"><i class="fa fa-expand"></i></button></div>';
+    } else {
+        imgHtml = '<div class="det-popup-noimg"><i class="fa fa-camera"></i></div>';
+    }
+
+    var container = document.createElement('div');
+    container.innerHTML = imgHtml +
+        '<div class="det-popup-body">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+                '<span style="font-weight:700;font-size:0.85rem;">' + det.type + '</span>' +
+                '<span style="background:' + sevColor + ';color:#fff;padding:1px 8px;border-radius:10px;font-size:0.6rem;font-weight:600;">' + det.severity + '</span>' +
+            '</div>' +
+            '<div style="font-size:0.72rem;color:#94a3b8;">Confidence: ' + Math.round(det.confidence*100) + '% &middot; ' + det.distance_km.toFixed(2) + ' km</div>' +
+        '</div>' +
+        '<div class="det-popup-nav">' +
+            '<button class="prev-btn" ' + (idx === 0 ? 'disabled' : '') + '><i class="fa fa-arrow-left"></i> Prev</button>' +
+            '<span class="nav-counter">' + (idx + 1) + ' / ' + total + '</span>' +
+            '<button class="next-btn" ' + (idx === total - 1 ? 'disabled' : '') + '>Next <i class="fa fa-arrow-right"></i></button>' +
+        '</div>';
+
+    var prevBtn = container.querySelector('.prev-btn');
+    var nextBtn = container.querySelector('.next-btn');
+    if (prevBtn) prevBtn.addEventListener('click', function(e) { e.stopPropagation(); navSessionDet(-1); });
+    if (nextBtn) nextBtn.addEventListener('click', function(e) { e.stopPropagation(); navSessionDet(1); });
+
+    var zoomBtn = container.querySelector('.det-popup-zoom');
+    var imgWrap = container.querySelector('.det-popup-imgwrap');
+    if (zoomBtn && det.thumbnail) {
+        zoomBtn.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(det.thumbnail, det.type + ' · ' + det.severity); });
+    }
+    if (imgWrap && det.thumbnail) {
+        imgWrap.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(det.thumbnail, det.type + ' · ' + det.severity); });
+    }
+
+    detPopup.setLatLng([det.lat, det.lon]).setContent(container).openOn(map);
+    map.flyTo([det.lat, det.lon], 17, { duration: 0.5 });
+}
+
+function navSessionDet(dir) {
+    var visible = getVisibleDets();
+    var newIdx = currentDetIdx + dir;
+    if (newIdx < 0 || newIdx >= visible.length) return;
+    currentDetIdx = newIdx;
+    showDetPopup(visible, newIdx);
+}
+
+// Click map road segment → open that session's detail
+map.on('click', function(e) {
+    if (!activeSessionId) resetHl();
+});
+
+// Count-up animation for stats numbers
+(function() {
+    var DURATION = 1000; // ms
+    var els = document.querySelectorAll('.count-up');
+    els.forEach(function(el) {
+        var target = parseFloat(el.getAttribute('data-target'));
+        if (isNaN(target) || target === 0) return; // skip zero or dash values
+        var suffix = el.getAttribute('data-suffix') || '';
+        var decimals = parseInt(el.getAttribute('data-decimals')) || 0;
+        var start = performance.now();
+        function update(now) {
+            var elapsed = now - start;
+            var progress = Math.min(elapsed / DURATION, 1);
+            // ease-out quad
+            var eased = 1 - (1 - progress) * (1 - progress);
+            var current = eased * target;
+            el.textContent = current.toFixed(decimals) + suffix;
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            } else {
+                el.textContent = target.toFixed(decimals) + suffix;
+            }
+        }
+        requestAnimationFrame(update);
+    });
+})();
+
+// Highlight newly uploaded sessions
+(function() {
+    var params = new URLSearchParams(window.location.search);
+    var newIds = params.get('new');
+    if (!newIds) return;
+    var ids = newIds.split(',');
+    var newBounds = L.latLngBounds();
+    ids.forEach(function(id) {
+        var card = document.querySelector('.s-card[data-id="' + id + '"]');
+        if (card) {
+            card.classList.add('new-upload');
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            newBounds.extend([parseFloat(card.dataset.lat), parseFloat(card.dataset.lon)]);
+            newBounds.extend([parseFloat(card.dataset.mlat), parseFloat(card.dataset.mlon)]);
+        }
+    });
+    // Zoom map to newly uploaded sessions
+    if (newBounds.isValid()) {
+        setTimeout(function() { map.fitBounds(newBounds, { padding: [50, 50], maxZoom: 15, animate: true }); }, 500);
+    }
+    // Show toast
+    showToast(ids.length + ' session' + (ids.length > 1 ? 's' : '') + ' uploaded successfully', 'success');
+    // Clean URL
+    window.history.replaceState({}, '', window.location.pathname);
+    // Remove highlight after 6 seconds
+    setTimeout(function() {
+        document.querySelectorAll('.s-card.new-upload').forEach(function(c) { c.classList.remove('new-upload'); });
+    }, 6000);
+})();
+</script>
+{% endblock %}

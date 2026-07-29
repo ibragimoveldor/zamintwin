@@ -1,0 +1,683 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ project.name }} — Upload{% endblock %}
+
+{% block style %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg-card: #ffffff;
+    --bg-page: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --border: #e2e8f0;
+    --accent: #3b82f6;
+}
+.upload-page { font-family: 'DM Sans', sans-serif; }
+.upload-page * { box-sizing: border-box; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+
+.up-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+.up-header h4 { margin: 0; font-weight: 700; color: var(--text-primary); }
+.up-header-meta { font-size: 0.82rem; color: var(--text-secondary); }
+.up-back { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; margin-bottom: 8px; }
+.up-back:hover { color: var(--accent); text-decoration: none; }
+
+.card-s { background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+.card-s-head { padding: 12px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 0.88rem; color: var(--text-primary); }
+
+.upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s; background: #f8fafc; margin: 16px; }
+.upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: rgba(59,130,246,0.04); }
+.upload-zone i { font-size: 2rem; color: var(--accent); margin-bottom: 10px; }
+.upload-zone h6 { font-weight: 700; margin-bottom: 4px; color: var(--text-primary); }
+.upload-zone p { font-size: 0.8rem; color: var(--text-secondary); margin: 0; }
+.upload-zone input { display: none; }
+
+.file-count { padding: 8px 16px; margin: 0 16px 16px; background: #f0f9ff; border-radius: 8px; font-size: 0.82rem; color: #0369a1; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+/* Upload progress */
+.upload-progress { margin: 0 16px 16px; display: none; }
+.upload-progress.show { display: block; }
+.upload-progress-track { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+.upload-progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #3b82f6, #06b6d4); width: 0%; transition: width 0.3s ease; }
+.upload-progress-info { display: flex; justify-content: space-between; margin-top: 6px; font-size: 0.75rem; color: var(--text-secondary); }
+.upload-progress-info .mono { font-family: 'JetBrains Mono', monospace; }
+.upload-done { padding: 12px 16px; margin: 0 16px 16px; background: #f0fdf4; border-radius: 8px; border: 1px solid #bbf7d0; display: none; align-items: center; gap: 8px; font-size: 0.82rem; color: #166534; font-weight: 600; }
+.upload-done.show { display: flex; }
+
+.btn-up { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.btn-up-primary { background: var(--accent); color: white; }
+.btn-up-primary:hover { background: #2563eb; transform: translateY(-1px); color: white; text-decoration: none; }
+.btn-up-primary:disabled { background: #94a3b8; cursor: not-allowed; transform: none; }
+.btn-up-green { background: #059669; color: white; }
+.btn-up-green:hover { background: #047857; color: white; text-decoration: none; }
+.btn-up-red { background: #dc2626; color: white; }
+.btn-up-red:hover { background: #b91c1c; color: white; text-decoration: none; }
+.btn-up-outline { background: white; color: var(--text-primary); border: 1px solid var(--border); }
+.btn-up-outline:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.btn-actions { display: flex; gap: 8px; margin: 16px; flex-wrap: wrap; }
+
+.status-pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; }
+
+/* Image table */
+.img-table { width: 100%; font-size: 0.82rem; }
+.img-table thead { background: #f8fafc; }
+.img-table th { padding: 8px 12px; font-weight: 600; color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid var(--border); }
+.img-table td { padding: 6px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.img-table tr { cursor: pointer; transition: background 0.15s; }
+.img-table tbody tr:hover { background: #f0f7ff; }
+.img-table tbody tr.active { background: #eff6ff; }
+.img-table-thumb { width: 40px; height: 40px; border-radius: 4px; overflow: hidden; background: #0f172a; flex-shrink: 0; }
+.img-table-thumb img { width: 100%; height: 100%; object-fit: cover; transform: rotate(90deg) scale(1.4); }
+.img-table-name { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+
+/* Image viewer panel */
+.img-viewer { display: none; background: #0f172a; border-radius: 8px; margin: 12px 16px; overflow: hidden; }
+.img-viewer.show { display: block; }
+.img-viewer-container {
+    width: 100%; height: 280px; display: flex; align-items: center; justify-content: center;
+    overflow: hidden; position: relative;
+}
+.img-viewer-container img {
+    transform: rotate(90deg);
+    max-height: 95%; max-width: 95%;
+    object-fit: contain; cursor: pointer;
+}
+.img-viewer-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px; background: rgba(255,255,255,0.05);
+}
+.img-viewer-info { color: #94a3b8; font-size: 0.75rem; }
+.img-viewer-nav { display: flex; gap: 6px; }
+.img-viewer-nav button { background: rgba(255,255,255,0.1); border: none; color: white; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: background 0.2s; }
+.img-viewer-nav button:hover { background: rgba(255,255,255,0.25); }
+
+/* Fullscreen modal */
+.img-modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 9999; cursor: zoom-out; align-items: center; justify-content: center; flex-direction: column; }
+.img-modal-backdrop.show { display: flex; }
+.img-modal-backdrop img { transform: rotate(90deg); max-height: 80vw; max-width: 85vh; object-fit: contain; border-radius: 4px; box-shadow: 0 0 60px rgba(0,0,0,0.5); }
+.img-modal-close { position: fixed; top: 16px; right: 20px; color: white; font-size: 1.5rem; cursor: pointer; z-index: 10000; opacity: 0.7; background: none; border: none; }
+.img-modal-close:hover { opacity: 1; }
+.img-modal-info { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); color: white; padding: 8px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; z-index: 10000; }
+.img-modal-nav { position: fixed; top: 50%; transform: translateY(-50%); color: white; font-size: 2rem; cursor: pointer; z-index: 10000; opacity: 0.5; background: none; border: none; padding: 20px; }
+.img-modal-nav:hover { opacity: 1; }
+.img-modal-prev { left: 10px; }
+.img-modal-next { right: 10px; }
+
+/* ===== PROGRESS PANEL ===== */
+.progress-panel { margin: 16px; display: none; }
+.progress-panel.show { display: block; }
+.progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.progress-header h6 { margin: 0; font-weight: 700; color: var(--text-primary); }
+.progress-eta { font-size: 0.82rem; color: var(--accent); font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+.progress-track { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-bottom: 20px; }
+.progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; background: linear-gradient(90deg, #3b82f6, #8b5cf6); position: relative; }
+.progress-fill::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%); animation: shimmer 2s infinite; }
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+.stage-list { display: flex; flex-direction: column; gap: 10px; }
+.stage-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; transition: all 0.3s; }
+.stage-item.waiting { background: #f8fafc; color: var(--text-secondary); }
+.stage-item.active { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.stage-item.done { background: #f0fdf4; color: #166534; }
+.stage-item.failed { background: #fef2f2; color: #991b1b; }
+.stage-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0; }
+.stage-item.waiting .stage-icon { background: #e2e8f0; color: #94a3b8; }
+.stage-item.active .stage-icon { background: #3b82f6; color: white; }
+.stage-item.done .stage-icon { background: #22c55e; color: white; }
+.stage-item.failed .stage-icon { background: #ef4444; color: white; }
+.stage-name { font-weight: 600; font-size: 0.85rem; }
+.stage-detail { font-size: 0.72rem; opacity: 0.7; margin-top: 1px; }
+.stage-spinner { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.complete-card { text-align: center; padding: 32px; display: none; }
+.complete-card.show { display: block; }
+.complete-card i { font-size: 3rem; color: #22c55e; margin-bottom: 12px; }
+.complete-card h5 { font-weight: 700; margin-bottom: 4px; }
+.complete-card p { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 20px; }
+.complete-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+.notif { padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.notif-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.notif-warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">Projects</a></li>
+    <li class="breadcrumb-item active">{{ project.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="upload-page">
+<div class="container-fluid px-3 py-2">
+
+    {% if msg.msg %}
+    <div class="notif notif-{{ msg.type }}" id="notification">
+        <i class="fa {% if msg.type == 'success' %}fa-check-circle{% else %}fa-exclamation-circle{% endif %}"></i>
+        {{ msg.msg }}
+    </div>
+    {% endif %}
+
+    <a href="{% url 'projects:index' %}" class="up-back"><i class="fa fa-arrow-left"></i> Back to Projects</a>
+    <div class="up-header">
+        <div>
+            <h4>{{ project.name }}</h4>
+            <div class="up-header-meta">
+                {{ project.images.count }} images uploaded · Created {{ project.created_at|date:"M d, Y" }}
+                {% if project.status == 0 %}
+                    · <span class="status-pill" style="background:#f1f5f9;color:#64748b;">Created</span>
+                {% elif project.status == 1 %}
+                    · <span class="status-pill" style="background:#dbeafe;color:#1d4ed8;">Uploaded</span>
+                {% elif project.status == 2 %}
+                    · <span class="status-pill" style="background:#fef3c7;color:#92400e;"><i class="fa fa-spinner fa-spin"></i> Processing</span>
+                {% elif project.status == 3 %}
+                    · <span class="status-pill" style="background:#fee2e2;color:#991b1b;">Failed</span>
+                {% elif project.status == 4 %}
+                    · <span class="status-pill" style="background:#dcfce7;color:#166534;">Completed</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {# LEFT: Upload + Images #}
+        <div class="col-lg-7 mb-3">
+            <div class="card-s mb-3">
+                <div class="card-s-head">
+                    <span><i class="fa fa-cloud-upload-alt" style="color:var(--accent);margin-right:6px;"></i> Upload Images</span>
+                </div>
+                <form method="post" enctype="multipart/form-data" id="uploadForm">
+                    {% csrf_token %}
+                    <div class="upload-zone" id="dropZone">
+                        <i class="fa fa-images"></i>
+                        <h6>Drop images here or click to browse</h6>
+                        <p>JPG, JPEG, PNG · Vehicle-mounted camera images</p>
+                        <input type="file" name="image" id="fileInput" multiple accept="image/jpeg,image/jpg,image/png">
+                    </div>
+                    <div class="file-count" id="fileCount" style="display:none;">
+                        <i class="fa fa-images"></i>
+                        <span id="fileCountText">0 files selected</span>
+                    </div>
+                    <div class="upload-progress" id="uploadProgress">
+                        <div class="upload-progress-track"><div class="upload-progress-fill" id="uploadFill"></div></div>
+                        <div class="upload-progress-info">
+                            <span id="uploadPct" class="mono">0%</span>
+                            <span id="uploadFileCount" class="mono"></span>
+                            <span id="uploadSpeed" class="mono"></span>
+                        </div>
+                    </div>
+                    <div class="upload-done" id="uploadDone">
+                        <i class="fa fa-check-circle"></i>
+                        <span id="uploadDoneText"></span>
+                    </div>
+                    <div class="btn-actions">
+                        <button type="submit" class="btn-up btn-up-primary" id="uploadBtn" disabled>
+                            <i class="fa fa-upload"></i> Upload Images
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            {% if project.images.count > 0 %}
+            <div class="card-s">
+                <div class="card-s-head">
+                    <span><i class="fa fa-th" style="color:var(--accent);margin-right:6px;"></i> Uploaded Images</span>
+                    <span class="mono" style="font-size:0.75rem;color:var(--text-secondary);">{{ project.images.count }} files</span>
+                </div>
+                <div class="img-viewer" id="imgViewer">
+                    <div class="img-viewer-container">
+                        <img id="viewerImg" src="" alt="">
+                    </div>
+                    <div class="img-viewer-bar">
+                        <div class="img-viewer-info" id="viewerInfo"></div>
+                        <div class="img-viewer-nav">
+                            <button id="viewerPrev"><i class="fa fa-chevron-left"></i></button>
+                            <button id="viewerFull" title="Fullscreen"><i class="fa fa-expand"></i></button>
+                            <button id="viewerNext"><i class="fa fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div style="max-height:300px;overflow-y:auto;">
+                    <table class="img-table">
+                        <thead><tr><th></th><th>Filename</th><th>Date</th></tr></thead>
+                        <tbody id="imgTableBody">
+                            {% for image in project.images.all %}
+                            <tr data-idx="{{ forloop.counter0 }}" data-src="/media/{{ image.image }}" data-name="{{ image }}">
+                                <td style="width:50px;">
+                                    <div class="img-table-thumb">
+                                        <img src="/media/{{ image.image }}" alt="" loading="lazy">
+                                    </div>
+                                </td>
+                                <td><div class="img-table-name" title="{{ image }}">{{ image }}</div></td>
+                                <td style="font-size:0.72rem;color:var(--text-secondary);white-space:nowrap;">{{ image.created_at|date:"H:i, M d" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            {# Fullscreen modal #}
+            <div class="img-modal-backdrop" id="imgModal">
+                <button class="img-modal-close" id="imgModalClose"><i class="fa fa-times"></i></button>
+                <button class="img-modal-nav img-modal-prev" id="imgModalPrev"><i class="fa fa-chevron-left"></i></button>
+                <button class="img-modal-nav img-modal-next" id="imgModalNext"><i class="fa fa-chevron-right"></i></button>
+                <img src="" id="imgModalImg" alt="">
+                <div class="img-modal-info" id="imgModalInfo"></div>
+            </div>
+        </div>
+
+        {# RIGHT: Analysis Control #}
+        <div class="col-lg-5 mb-3">
+            <div class="card-s">
+                <div class="card-s-head">
+                    <span><i class="fa fa-robot" style="color:var(--accent);margin-right:6px;"></i> PCI Analysis</span>
+                </div>
+
+                {# Pre-analysis state #}
+                <div id="preAnalysis" {% if project.status == 2 %}style="display:none;"{% endif %}>
+                    <div style="padding:24px 16px;text-align:center;">
+                        {% if project.status == 4 %}
+                            <i class="fa fa-check-circle" style="font-size:2.5rem;color:#22c55e;margin-bottom:12px;"></i>
+                            <h6 style="font-weight:700;">Analysis Complete</h6>
+                            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:16px;">PCI results are ready.</p>
+                            <div class="complete-actions">
+                                <a href="{% url 'analysis:results' project.id %}" class="btn-up btn-up-green"><i class="fa fa-chart-bar"></i> View Results</a>
+                                <a href="{% url 'analysis:mapview' project.id %}" class="btn-up btn-up-outline"><i class="fa fa-map"></i> Map</a>
+                            </div>
+                            <div style="margin-top:12px;">
+                                <form method="post" action="{% url 'projects:process' project.id %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-up btn-up-outline" style="font-size:0.78rem;" onclick="return confirm('Re-run analysis?');"><i class="fa fa-redo"></i> Re-run</button>
+                                </form>
+                            </div>
+                        {% elif project.status == 3 %}
+                            <i class="fa fa-exclamation-triangle" style="font-size:2.5rem;color:#ef4444;margin-bottom:12px;"></i>
+                            <h6 style="font-weight:700;color:#dc2626;">Analysis Failed</h6>
+                            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:16px;">Something went wrong. Check logs or retry.</p>
+                            <form method="post" action="{% url 'projects:process' project.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-up btn-up-red"><i class="fa fa-redo"></i> Retry</button>
+                            </form>
+                        {% elif project.images.count > 0 %}
+                            <i class="fa fa-play-circle" style="font-size:2.5rem;color:var(--accent);margin-bottom:12px;"></i>
+                            <h6 style="font-weight:700;">Ready to Analyze</h6>
+                            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:4px;">
+                                {{ project.images.count }} images · ~{{ project.images.count }}0 meters of road
+                            </p>
+                            <p style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:16px;" class="mono">
+                                Estimated time: ~<span id="etaEstimate"></span>
+                            </p>
+                            <form method="post" action="{% url 'projects:process' project.id %}" id="startForm">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-up btn-up-green" id="startBtn"><i class="fa fa-rocket"></i> Start Analysis</button>
+                            </form>
+                        {% else %}
+                            <i class="fa fa-arrow-left" style="font-size:2rem;color:#94a3b8;margin-bottom:12px;"></i>
+                            <h6 style="font-weight:700;color:var(--text-secondary);">Upload Images First</h6>
+                            <p style="font-size:0.82rem;color:var(--text-secondary);">Upload road survey images to begin PCI assessment.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {# PROGRESS PANEL #}
+                <div class="progress-panel {% if project.status == 2 %}show{% endif %}" id="progressPanel">
+                    <div class="progress-header">
+                        <h6><i class="fa fa-spinner fa-spin" style="color:var(--accent);margin-right:6px;"></i> Analyzing...</h6>
+                        <div class="progress-eta" id="progressEta">Calculating...</div>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="progressFill" style="width:0%;"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-top:-14px;margin-bottom:16px;">
+                        <span class="mono" style="font-size:0.72rem;color:var(--text-secondary);" id="progressPct">0%</span>
+                        <span class="mono" style="font-size:0.72rem;color:var(--text-secondary);" id="progressRate"></span>
+                    </div>
+                    <div class="stage-list" id="stageList">
+                        <div class="stage-item waiting" data-stage="0">
+                            <div class="stage-icon"><i class="fa fa-layer-group"></i></div>
+                            <div><div class="stage-name">Preparing images</div><div class="stage-detail">Stacking into 10m tiles</div></div>
+                        </div>
+                        <div class="stage-item waiting" data-stage="1">
+                            <div class="stage-icon"><i class="fa fa-search"></i></div>
+                            <div><div class="stage-name">Detecting defects</div><div class="stage-detail">AI crack detection & segmentation</div></div>
+                        </div>
+                        <div class="stage-item waiting" data-stage="2">
+                            <div class="stage-icon"><i class="fa fa-ruler-combined"></i></div>
+                            <div><div class="stage-name">Measuring damage</div><div class="stage-detail">Width & area calculation</div></div>
+                        </div>
+                        <div class="stage-item waiting" data-stage="3">
+                            <div class="stage-icon"><i class="fa fa-calculator"></i></div>
+                            <div><div class="stage-name">Calculating PCI</div><div class="stage-detail">ASTM D6433 evaluation</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                {# COMPLETION PANEL #}
+                <div class="complete-card" id="completeCard">
+                    <i class="fa fa-check-circle"></i>
+                    <h5>Analysis Complete!</h5>
+                    <p id="completeMsg">PCI results are ready.</p>
+                    <div class="complete-actions">
+                        <a href="{% url 'analysis:results' project.id %}" class="btn-up btn-up-green"><i class="fa fa-chart-bar"></i> View Dashboard</a>
+                        <a href="{% url 'analysis:mapview' project.id %}" class="btn-up btn-up-outline"><i class="fa fa-map"></i> Map View</a>
+                    </div>
+                </div>
+            </div>
+
+            {% if project.status == 4 %}
+            <div class="card-s mt-3">
+                <div class="card-s-head">
+                    <span><i class="fa fa-download" style="color:#059669;margin-right:6px;"></i> Export</span>
+                </div>
+                <div style="padding:12px 16px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <a href="{% url 'analysis:export_pdf' project.id %}" class="btn-up btn-up-outline" style="font-size:0.78rem;">
+                        <i class="fa fa-file-pdf" style="color:#dc2626;"></i> PDF Report
+                    </a>
+                    <a href="{% url 'analysis:download' project.id %}" class="btn-up btn-up-outline" style="font-size:0.78rem;">
+                        <i class="fa fa-file-csv" style="color:#059669;"></i> CSV Data
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block scriptBlock %}
+<script>
+$(document).ready(function() {
+    var dropZone = $('#dropZone'), fileInput = $('#fileInput');
+    dropZone.on('click', function(e) {
+        // Only open file picker if clicking the zone itself, not child elements that handle their own clicks
+        if (e.target === dropZone[0] || $(e.target).closest('#dropZone').length && e.target.tagName !== 'INPUT') {
+            fileInput.trigger('click');
+        }
+    });
+    fileInput.on('click', function(e) { e.stopPropagation(); }); // prevent dropZone click loop
+    dropZone.on('dragover', function(e) { e.preventDefault(); $(this).addClass('dragover'); });
+    dropZone.on('dragleave drop', function(e) { e.preventDefault(); $(this).removeClass('dragover'); });
+    dropZone.on('drop', function(e) {
+        e.preventDefault();
+        var dt = e.originalEvent.dataTransfer;
+        if (dt && dt.files.length) {
+            fileInput[0].files = dt.files;
+            fileInput.trigger('change');
+        }
+    });
+    fileInput.on('change', function() { updateFileCount(this.files.length); });
+    function updateFileCount(n) {
+        if (n > 0) { $('#fileCount').show(); $('#fileCountText').text(n + ' file' + (n>1?'s':'') + ' selected'); $('#uploadBtn').prop('disabled', false); }
+        else { $('#fileCount').hide(); $('#uploadBtn').prop('disabled', true); }
+    }
+
+    // ===== FILE UPLOAD WITH REAL PROGRESS =====
+    var uploadForm = document.getElementById('uploadForm');
+
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var files = fileInput[0].files;
+        if (!files.length) return;
+
+        var totalFiles = files.length;
+        var totalSize = 0;
+        for (var i = 0; i < totalFiles; i++) totalSize += files[i].size;
+
+        // Show progress UI
+        $('#uploadBtn').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Uploading...');
+        $('#uploadProgress').addClass('show');
+        $('#uploadDone').removeClass('show');
+        $('#fileCount').hide();
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+            return (bytes / 1073741824).toFixed(2) + ' GB';
+        }
+
+        var formData = new FormData(uploadForm);
+        var xhr = new XMLHttpRequest();
+        var startTime = Date.now();
+
+        xhr.upload.addEventListener('progress', function(e) {
+            if (!e.lengthComputable) return;
+
+            var pct = (e.loaded / e.total) * 100;
+            var elapsed = (Date.now() - startTime) / 1000;
+            var speed = e.loaded / elapsed;
+            var remaining = (e.total - e.loaded) / speed;
+
+            // Estimate files uploaded based on bytes sent (proportional)
+            var filesUploaded = Math.min(Math.floor((e.loaded / e.total) * totalFiles), totalFiles);
+
+            $('#uploadFill').css('width', pct + '%');
+            $('#uploadPct').text(Math.floor(pct) + '%');
+            $('#uploadFileCount').text(filesUploaded + ' / ' + totalFiles + ' files · ' + formatSize(e.loaded) + ' / ' + formatSize(e.total));
+
+            var speedStr = formatSize(speed) + '/s';
+            var timeStr = remaining < 60 ? Math.ceil(remaining) + 's' : Math.floor(remaining / 60) + 'm ' + Math.ceil(remaining % 60) + 's';
+            $('#uploadSpeed').text(speedStr + ' · ~' + timeStr + ' left');
+        });
+
+        xhr.addEventListener('load', function() {
+            $('#uploadFill').css('width', '100%');
+            $('#uploadPct').text('100%');
+            $('#uploadSpeed').text('');
+            $('#uploadFileCount').text(totalFiles + ' / ' + totalFiles + ' files · ' + formatSize(totalSize) + ' / ' + formatSize(totalSize));
+            $('#uploadProgress').removeClass('show');
+            $('#uploadDone').addClass('show');
+            var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            $('#uploadDoneText').text(totalFiles + ' images uploaded (' + formatSize(totalSize) + ') in ' + elapsed + 's');
+
+            // Reload page after short delay to show updated state
+            setTimeout(function() { window.location.reload(); }, 1500);
+        });
+
+        xhr.addEventListener('error', function() {
+            $('#uploadBtn').prop('disabled', false).html('<i class="fa fa-upload"></i> Upload Images');
+            $('#uploadProgress').removeClass('show');
+            alert('Upload failed. Please check your connection and try again.');
+        });
+
+        xhr.open('POST', uploadForm.action || window.location.href, true);
+        xhr.send(formData);
+    });
+
+    var imgCount = {{ project.images.count }};
+    var secPerImage = 2.5;
+    if (imgCount > 0) { $('#etaEstimate').text(formatTime(Math.ceil(imgCount * secPerImage))); }
+    if ($('#notification')[0]) { setTimeout(function() { $('#notification').fadeOut(400); }, 4000); }
+
+    // ===== IMAGE VIEWER =====
+    var images = [];
+    var viewIdx = -1;
+    $('#imgTableBody tr').each(function() {
+        images.push({ src: $(this).data('src'), name: $(this).data('name') });
+    });
+
+    $('#imgTableBody tr').click(function() {
+        var idx = $(this).data('idx');
+        selectImage(idx);
+    });
+
+    function selectImage(idx) {
+        if (idx < 0 || idx >= images.length) return;
+        viewIdx = idx;
+        $('#imgViewer').addClass('show');
+        $('#viewerImg').attr('src', images[idx].src);
+        $('#viewerInfo').text((idx + 1) + ' / ' + images.length + ' — ' + images[idx].name);
+        $('#imgTableBody tr').removeClass('active');
+        $('#imgTableBody tr[data-idx="' + idx + '"]').addClass('active');
+        // Scroll table row into view
+        var row = $('#imgTableBody tr[data-idx="' + idx + '"]')[0];
+        if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    $('#viewerPrev').click(function() { if (viewIdx > 0) selectImage(viewIdx - 1); });
+    $('#viewerNext').click(function() { if (viewIdx < images.length - 1) selectImage(viewIdx + 1); });
+
+    // Fullscreen
+    function openFullscreen() {
+        if (viewIdx < 0) return;
+        $('#imgModalImg').attr('src', images[viewIdx].src);
+        $('#imgModalInfo').text((viewIdx + 1) + ' / ' + images.length + ' — ' + images[viewIdx].name);
+        $('#imgModal').addClass('show');
+        $('body').css('overflow', 'hidden');
+    }
+    function closeFullscreen() { $('#imgModal').removeClass('show'); $('body').css('overflow', ''); }
+
+    $('#viewerFull').click(openFullscreen);
+    $('#viewerImg').click(openFullscreen);
+    $('#imgModalClose').click(closeFullscreen);
+    $('#imgModal').click(function(e) { if (e.target === this) closeFullscreen(); });
+
+    function navFullscreen(dir) {
+        var next = viewIdx + dir;
+        if (next >= 0 && next < images.length) {
+            selectImage(next);
+            $('#imgModalImg').attr('src', images[next].src);
+            $('#imgModalInfo').text((next + 1) + ' / ' + images.length + ' — ' + images[next].name);
+        }
+    }
+    $('#imgModalPrev').click(function(e) { e.stopPropagation(); navFullscreen(-1); });
+    $('#imgModalNext').click(function(e) { e.stopPropagation(); navFullscreen(1); });
+    $(document).keydown(function(e) {
+        if ($('#imgModal').hasClass('show')) {
+            if (e.key === 'Escape') closeFullscreen();
+            if (e.key === 'ArrowLeft') navFullscreen(-1);
+            if (e.key === 'ArrowRight') navFullscreen(1);
+        } else if ($('#imgViewer').hasClass('show')) {
+            if (e.key === 'ArrowLeft' && viewIdx > 0) selectImage(viewIdx - 1);
+            if (e.key === 'ArrowRight' && viewIdx < images.length - 1) selectImage(viewIdx + 1);
+        }
+    });
+    var isProcessing = {{ project.status }} === 2;
+    var stageWeights = [0.10, 0.55, 0.15, 0.20];
+    var startTime = null, pollInterval = null, simInterval = null;
+    var currentProgress = 0, completed = false;
+    var storageKey = 'pci_progress_{{ project.id }}';
+
+    $('#startForm').on('submit', function() {
+        sessionStorage.setItem(storageKey, JSON.stringify({ startTime: Date.now(), imgCount: imgCount }));
+        setTimeout(startProgress, 300);
+    });
+    if (isProcessing) { startProgress(); }
+
+    function startProgress() {
+        // Restore saved state so progress resumes after navigating away
+        var saved = null;
+        try { saved = JSON.parse(sessionStorage.getItem(storageKey)); } catch(e) {}
+        if (saved && saved.startTime) {
+            startTime = saved.startTime;
+            if (saved.imgCount) imgCount = saved.imgCount;
+        } else {
+            startTime = Date.now();
+            sessionStorage.setItem(storageKey, JSON.stringify({ startTime: startTime, imgCount: imgCount }));
+        }
+
+        var elapsedSoFar = (Date.now() - startTime) / 1000;
+        $('#preAnalysis').hide();
+        $('#progressPanel').addClass('show');
+        $('#completeCard').removeClass('show');
+
+        var totalEstSec = Math.max(imgCount * secPerImage, 10);
+        var simElapsed = elapsedSoFar;
+
+        // Calculate where progress SHOULD be based on real elapsed time
+        var resumeRatio = simElapsed / totalEstSec;
+        if (resumeRatio < 1) { currentProgress = resumeRatio * 90; }
+        else { currentProgress = 90 + (1 - Math.exp(-(resumeRatio - 1) * 0.5)) * 8; }
+        currentProgress = Math.min(currentProgress, 98);
+
+        // Immediately render the resumed position
+        updateUI(currentProgress, simElapsed, totalEstSec);
+
+        simInterval = setInterval(function() {
+            if (completed) return;
+            simElapsed += 0.5;
+            var ratio = simElapsed / totalEstSec;
+            var target;
+            if (ratio < 1) { target = ratio * 90; }
+            else { target = 90 + (1 - Math.exp(-(ratio - 1) * 0.5)) * 8; }
+            target = Math.min(target, 98);
+            currentProgress += (target - currentProgress) * 0.15;
+            updateUI(currentProgress, simElapsed, totalEstSec);
+        }, 500);
+
+        pollInterval = setInterval(function() {
+            $.getJSON('{% url "projects:status" project.id %}', function(data) {
+                if (data.status === 4) { onComplete(); }
+                else if (data.status === 3) { onFailed(); }
+            });
+        }, 3000);
+    }
+
+    function updateUI(pct, elapsed, totalEst) {
+        $('#progressFill').css('width', pct + '%');
+        $('#progressPct').text(Math.floor(pct) + '%');
+
+        var remaining = Math.max(0, totalEst - elapsed);
+        if (pct > 5) { remaining = Math.max(0, (elapsed / (pct / 100)) - elapsed); }
+        $('#progressEta').text('~' + formatTime(Math.ceil(remaining)) + ' remaining');
+
+        if (elapsed > 2) {
+            var done = Math.floor(pct / 100 * imgCount);
+            $('#progressRate').text(done + '/' + imgCount + ' images · ' + (elapsed / Math.max(done,1)).toFixed(1) + 's/img');
+        }
+
+        var cumWeight = 0;
+        for (var i = 0; i < stageWeights.length; i++) {
+            cumWeight += stageWeights[i];
+            var $item = $('.stage-item[data-stage="' + i + '"]');
+            if (pct >= cumWeight * 100) {
+                $item.removeClass('waiting active').addClass('done');
+                $item.find('.stage-icon').html('<i class="fa fa-check"></i>');
+            } else if (pct >= (cumWeight - stageWeights[i]) * 100) {
+                $item.removeClass('waiting done').addClass('active');
+                $item.find('.stage-icon').html('<i class="fa fa-circle-notch stage-spinner"></i>');
+            }
+        }
+    }
+
+    function onComplete() {
+        completed = true;
+        clearInterval(simInterval); clearInterval(pollInterval);
+        sessionStorage.removeItem(storageKey);
+        $('#progressFill').css('width', '100%');
+        $('#progressPct').text('100%');
+        $('#progressEta').text('Done!');
+        $('.stage-item').removeClass('waiting active').addClass('done');
+        $('.stage-icon').html('<i class="fa fa-check"></i>');
+        var elapsed = (Date.now() - startTime) / 1000;
+        $('#completeMsg').text('Processed ' + imgCount + ' images in ' + formatTime(Math.ceil(elapsed)));
+        setTimeout(function() { $('#progressPanel').removeClass('show'); $('#completeCard').addClass('show'); }, 1500);
+    }
+
+    function onFailed() {
+        completed = true;
+        clearInterval(simInterval); clearInterval(pollInterval);
+        sessionStorage.removeItem(storageKey);
+        $('#progressEta').text('Failed').css('color', '#ef4444');
+        $('.stage-item.active').removeClass('active').addClass('failed');
+        $('.stage-item.failed .stage-icon').html('<i class="fa fa-times"></i>');
+    }
+
+    function formatTime(sec) {
+        if (sec < 60) return sec + 's';
+        var m = Math.floor(sec / 60), s = sec % 60;
+        if (m < 60) return m + 'min ' + (s > 0 ? s + 's' : '');
+        var h = Math.floor(m / 60); m = m % 60;
+        return h + 'h ' + m + 'min';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    {% load static %}
+    <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}">
+    <link rel="shortcut icon" href="{% static 'images/road_icon.png' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'fontawesome/css/all.css' %}">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <title>PCI|v.2.0 | {% block title %}{% endblock %}</title>
+    {% comment %} <title>PCI | v.1.0 | Login</title> {% endcomment %}
+</head>
+<body>
+    <div class="bg-blue">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-5 offset-lg-4">
+                    <form class="form-login" method="post">
+                        <a href="/"  class="logo-login" style="font-family: 'rteous'"><i class="fa fa-road"></i> PCI </a>
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <h6 class="form-text text-center text-danger">{{ login_error }}</h6>
+                        </div>
+                        <div class="form-group">
+                            {{ form.email }}
+                            <small id="help" class="form-text">{{ form.email.errors }}</small>
+                        </div>
+                        <div class="form-group">
+                            {{ form.pws }}
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-bg btn-block">Sign In </button>
+                        </div>
+                        <div class="form-group">
+                            <a href="#" class="lost-pws text-center">Lost your Password?</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="{% static 'js/jquery.slim.js' %}"></script>
+    <script src="{% static 'js/umd_popper.js' %}"></script>
+    <script src="{% static 'js/bootstrap.min.js' %}"></script>
+</body>
+</html>

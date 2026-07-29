@@ -1,0 +1,41 @@
+# docker-compose.override.yml
+#
+# This file is auto-loaded by docker compose alongside docker-compose.yml
+# It adds development-friendly settings like code mounting and debug mode.
+#
+# For production, rename this file or use:
+#   docker compose -f docker-compose.yml up -d
+
+services:
+  web:
+    environment:
+      - DEBUG=True
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+
+    volumes:
+      - ../pci_web:/app                  # Mount code for hot-reload
+      - shared_data:/data/media
+    command: python manage.py runserver 0.0.0.0:8000
+
+  celery:
+    environment:
+      - DATABASE_URL=postgres://zamintwin_user:${DB_PASSWORD:-changeme}@postgres:5432/zamintwin_db
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DJANGO_SETTINGS_MODULE=config.settings.development
+    volumes:
+      - ../pci_web:/app                  # Mount code for hot-reload
+      - shared_data:/data/media
+    command: celery -A config worker -l info --concurrency=2
+
+  ai-service:
+    environment:
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+    volumes:
+      - ../ai_service/app:/service/app   # Mount code for hot-reload
+      - shared_data:/data/media
+      - ./models:/models:ro
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload

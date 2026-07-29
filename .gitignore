@@ -1,0 +1,71 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# ===== Django =====
+db.sqlite3
+staticfiles/
+*.log
+
+# ===== Environment / Secrets =====
+.env
+.env.local
+.env.production
+docker/.env
+docker/ddns/.env
+
+# TLS certificates and private keys — never commit
+docker/nginx/ssl/
+*.pem
+*.crt
+*.key
+
+# ===== AI Models (too large for git, use DVC or shared drive) =====
+docker/models/*.pt
+docker/models/*.pth
+docker/models/*.pkl
+docker/models/**/*.pkl
+ai_service/models/
+
+# ===== Media / User uploads =====
+pci_web/media/
+media/
+
+# ===== IDE =====
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# ===== Docker =====
+docker/postgres_data/
+docker/redis_data/
+
+# ===== Archives / data dumps (kept locally, not in git) =====
+*.zip
+tashkent_*/
+tashkent_roads.json
+sessions_update_v*/
+sessions_network_map_update/
+ingest_fix_segment_gap/
+network_map_v2/
+sample_sessions/
+
+# ===== Client deliverables / generated reports =====
+*.pdf
+*.pptx
+
+# Bundled web font is a legitimate asset, keep it
+!pci_web/static/fonts/*.zip
+
+# ===== Stray one-off scripts =====
+/views.py
+/generate_sample_sessions.py
