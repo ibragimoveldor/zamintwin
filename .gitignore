@@ -69,3 +69,4 @@ sample_sessions/
 # ===== Stray one-off scripts =====
 /views.py
 /generate_sample_sessions.py
+/install_sessions_django.sh
