@@ -12,28 +12,39 @@ from datetime import datetime
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.utils.translation import gettext as _, gettext_noop, ngettext
 
 from .models import Session, Detection, RoadSegment
+from .pdf_fonts import BOLD_FONT, REGULAR_FONT, unicode_stylesheet
+from .templatetags.condition_labels import RATING_LABELS, SEVERITY_LABELS
 
 # Defect display names
 DEFECT_NAMES = {
-    "D00": "Longitudinal crack",
-    "D10": "Transverse crack",
-    "D20": "Alligator crack",
-    "D40": "Pothole",
-    "D50": "Pothole",
-    "pothole": "Pothole",
-    "alligator_crack": "Alligator crack",
-    "longitudinal_crack": "Longitudinal crack",
-    "transverse_crack": "Transverse crack",
-    "patch": "Patch/repair",
-    "rutting": "Rutting",
-    "bleeding": "Bleeding",
+    "D00": gettext_noop("Longitudinal crack"),
+    "D10": gettext_noop("Transverse crack"),
+    "D20": gettext_noop("Alligator crack"),
+    "D40": gettext_noop("Pothole"),
+    "D50": gettext_noop("Pothole"),
+    "pothole": gettext_noop("Pothole"),
+    "alligator_crack": gettext_noop("Alligator crack"),
+    "longitudinal_crack": gettext_noop("Longitudinal crack"),
+    "transverse_crack": gettext_noop("Transverse crack"),
+    "patch": gettext_noop("Patch/repair"),
+    "rutting": gettext_noop("Rutting"),
+    "bleeding": gettext_noop("Bleeding"),
 }
 
 
 def _defect_name(raw):
     return DEFECT_NAMES.get(raw, raw.replace("_", " ").title())
+
+
+def _rating_label(rating):
+    return str(RATING_LABELS.get(rating, (rating or "—").replace("_", " ").title()))
+
+
+def _severity_label(severity):
+    return str(SEVERITY_LABELS.get(severity, severity.title()))
 
 
 # PCI condition colors
@@ -73,7 +84,7 @@ def session_pdf_report(request, session_id):
         from reportlab.graphics import renderPDF
     except ImportError:
         return HttpResponse(
-            "reportlab is not installed. Run: pip install reportlab",
+            _("reportlab is not installed. Run: pip install reportlab"),
             status=500,
         )
 
@@ -114,7 +125,7 @@ def session_pdf_report(request, session_id):
     )
     width, height = A4
     story = []
-    styles = getSampleStyleSheet()
+    styles = unicode_stylesheet()
 
     # Custom styles
     brand_color = HexColor("#0f172a")
@@ -122,8 +133,8 @@ def session_pdf_report(request, session_id):
 
     title_style = ParagraphStyle(
         "Title", parent=styles["Title"],
-        fontSize=24, spaceAfter=4, textColor=brand_color,
-        fontName="Helvetica-Bold",
+        fontSize=24, leading=30, spaceAfter=4, textColor=brand_color,
+        fontName=BOLD_FONT,
     )
     subtitle_style = ParagraphStyle(
         "Subtitle", parent=styles["Normal"],
@@ -132,12 +143,12 @@ def session_pdf_report(request, session_id):
     h2_style = ParagraphStyle(
         "H2", parent=styles["Heading2"],
         fontSize=14, spaceAfter=8, spaceBefore=16,
-        textColor=brand_color, fontName="Helvetica-Bold",
+        textColor=brand_color, fontName=BOLD_FONT,
     )
     h3_style = ParagraphStyle(
         "H3", parent=styles["Heading3"],
         fontSize=11, spaceAfter=6, spaceBefore=12,
-        textColor=HexColor("#334155"), fontName="Helvetica-Bold",
+        textColor=HexColor("#334155"), fontName=BOLD_FONT,
     )
     body_style = ParagraphStyle(
         "Body", parent=styles["Normal"],
@@ -160,14 +171,16 @@ def session_pdf_report(request, session_id):
     # Brand header
     story.append(Paragraph("ZaminTwin.ai", ParagraphStyle(
         "Brand", parent=styles["Normal"],
-        fontSize=12, textColor=accent_color, fontName="Helvetica-Bold",
+        fontSize=12, textColor=accent_color, fontName=BOLD_FONT,
         spaceAfter=2,
     )))
-    story.append(Paragraph("Road Condition Assessment Report", title_style))
+    story.append(Paragraph(_("Road Condition Assessment Report"), title_style))
     story.append(Paragraph(
-        f"Session: {session.session_id} &nbsp;|&nbsp; "
-        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')} &nbsp;|&nbsp; "
-        f"Inspector: {request.user.get_full_name() or request.user.username}",
+        _("Session: %(session)s &nbsp;|&nbsp; Generated: %(generated)s &nbsp;|&nbsp; Inspector: %(inspector)s") % {
+            "session": session.session_id,
+            "generated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "inspector": request.user.get_full_name() or request.user.username,
+        },
         subtitle_style,
     ))
 
@@ -178,35 +191,35 @@ def session_pdf_report(request, session_id):
                          fillColor=HexColor(pci_color), fillOpacity=0.1,
                          strokeColor=HexColor(pci_color), strokeWidth=1))
     pci_drawing.add(String(15 * mm, 8 * mm,
-                           f"PCI {avg_pci:.1f}  —  {condition.replace('_', ' ').title()}",
-                           fontSize=18, fontName="Helvetica-Bold",
+                           f"PCI {avg_pci:.1f}  —  {_rating_label(condition)}",
+                           fontSize=18, fontName=BOLD_FONT,
                            fillColor=HexColor(pci_color)))
-    pci_drawing.add(String(130 * mm, 8 * mm,
-                           f"{distance:.2f} km surveyed",
-                           fontSize=10, fontName="Helvetica",
-                           fillColor=HexColor("#64748b")))
+    pci_drawing.add(String(165 * mm, 8 * mm,
+                           _("%(distance)s km surveyed") % {"distance": f"{distance:.2f}"},
+                           fontSize=10, fontName=REGULAR_FONT,
+                           fillColor=HexColor("#64748b"), textAnchor="end"))
     story.append(pci_drawing)
     story.append(Spacer(1, 8 * mm))
 
     # ── Executive Summary Table ──
-    story.append(Paragraph("Executive Summary", h2_style))
+    story.append(Paragraph(_("Executive Summary"), h2_style))
 
     summary_data = [
-        ["Session ID", session.session_id],
-        ["Date", session.start_time.strftime("%Y-%m-%d %H:%M") if session.start_time else "—"],
-        ["Distance Surveyed", f"{distance:.2f} km"],
-        ["Average PCI Score", f"{avg_pci:.1f} ({condition.replace('_', ' ').title()})"],
-        ["Road Segments (100m)", str(total_segments)],
-        ["Total Defects", str(total_detections)],
-        ["Defects per km", f"{(total_detections / distance):.1f}" if distance > 0 else "—"],
-        ["Device", session.session_metadata.get("device", "Jetson Orin Nano Super") if session.session_metadata else "—"],
-        ["AI Model", session.session_metadata.get("model", "yolo26s.engine") if session.session_metadata else "—"],
+        [_("Session ID"), session.session_id],
+        [_("Date"), session.start_time.strftime("%Y-%m-%d %H:%M") if session.start_time else "—"],
+        [_("Distance Surveyed"), f"{distance:.2f} " + _("km")],
+        [_("Average PCI Score"), f"{avg_pci:.1f} ({_rating_label(condition)})"],
+        [_("Road Segments (100m)"), str(total_segments)],
+        [_("Total Defects"), str(total_detections)],
+        [_("Defects per km"), f"{(total_detections / distance):.1f}" if distance > 0 else "—"],
+        [_("Device"), session.session_metadata.get("device", "Jetson Orin Nano Super") if session.session_metadata else "—"],
+        [_("AI Model"), session.session_metadata.get("model", "yolo26s.engine") if session.session_metadata else "—"],
     ]
 
-    t = Table(summary_data, colWidths=[50 * mm, 120 * mm])
+    t = Table(summary_data, colWidths=[62 * mm, 108 * mm])
     t.setStyle(TableStyle([
-        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-        ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
+        ("FONTNAME", (0, 0), (0, -1), BOLD_FONT),
+        ("FONTNAME", (1, 0), (1, -1), REGULAR_FONT),
         ("FONTSIZE", (0, 0), (-1, -1), 9),
         ("TEXTCOLOR", (0, 0), (0, -1), HexColor("#64748b")),
         ("TEXTCOLOR", (1, 0), (1, -1), brand_color),
@@ -219,23 +232,23 @@ def session_pdf_report(request, session_id):
     story.append(Spacer(1, 8 * mm))
 
     # ── Condition Distribution ──
-    story.append(Paragraph("Road Condition Distribution", h2_style))
+    story.append(Paragraph(_("Road Condition Distribution"), h2_style))
 
     cond_order = ["good", "satisfactory", "fair", "poor", "very_poor", "failed"]
-    dist_header = ["Condition", "Segments", "Percentage", ""]
+    dist_header = [_("Condition"), _("Segments"), _("Percentage"), ""]
     dist_rows = [dist_header]
     for c in cond_order:
         cnt = cond_dist.get(c, 0)
         if cnt > 0:
             pct = cnt / total_segments * 100 if total_segments else 0
             bar = chr(9608) * max(1, int(pct / 3))
-            dist_rows.append([c.replace("_", " ").title(), str(cnt), f"{pct:.1f}%", bar])
+            dist_rows.append([_rating_label(c), str(cnt), f"{pct:.1f}%", bar])
 
     if len(dist_rows) > 1:
         dt = Table(dist_rows, colWidths=[40 * mm, 25 * mm, 25 * mm, 75 * mm])
         dt.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTNAME", (0, 0), (-1, 0), BOLD_FONT),
+            ("FONTNAME", (0, 1), (-1, -1), REGULAR_FONT),
             ("FONTSIZE", (0, 0), (-1, -1), 8.5),
             ("BACKGROUND", (0, 0), (-1, 0), HexColor("#f1f5f9")),
             ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#334155")),
@@ -248,7 +261,7 @@ def session_pdf_report(request, session_id):
         # Color the bar column
         for i, c in enumerate(cond_order):
             if cond_dist.get(c, 0) > 0:
-                row_idx = [r[0] for r in dist_rows].index(c.replace("_", " ").title())
+                row_idx = [r[0] for r in dist_rows].index(_rating_label(c))
                 clr = CONDITION_COLORS.get(c, "#64748b")
                 dt.setStyle(TableStyle([
                     ("TEXTCOLOR", (3, row_idx), (3, row_idx), HexColor(clr)),
@@ -259,10 +272,12 @@ def session_pdf_report(request, session_id):
     # PAGE 2: PCI ALONG ROAD CHART + WORST SEGMENTS + HISTORY
     # ═══════════════════════════════════════════════════════════════════
     story.append(PageBreak())
-    story.append(Paragraph("PCI Along Road Profile", h2_style))
+    story.append(Paragraph(_("PCI Along Road Profile"), h2_style))
     story.append(Paragraph(
-        f"PCI values plotted for each 100-meter segment. "
-        f"Total: {total_segments} segments over {distance:.2f} km.",
+        _("PCI values plotted for each 100-meter segment. Total: %(segments)s segments over %(distance)s km.") % {
+            "segments": total_segments,
+            "distance": f"{distance:.2f}",
+        },
         body_style,
     ))
     story.append(Spacer(1, 4 * mm))
@@ -307,7 +322,7 @@ def session_pdf_report(request, session_id):
     for pci_val in [0, 25, 40, 55, 70, 85, 100]:
         y = margin_bottom + (pci_val / 100.0) * plot_h
         pci_chart.add(String(margin_left - 2 * mm, y - 1 * mm, str(pci_val),
-                              fontSize=6, fontName="Helvetica", fillColor=HexColor("#64748b"),
+                              fontSize=6, fontName=REGULAR_FONT, fillColor=HexColor("#64748b"),
                               textAnchor="end"))
         pci_chart.add(Line(margin_left, y, margin_left + plot_w, y,
                             strokeColor=HexColor("#cbd5e1"), strokeWidth=0.3))
@@ -325,7 +340,7 @@ def session_pdf_report(request, session_id):
             km_val = (i_tick / num_ticks) * max_dist
             x = margin_left + (km_val / max_dist) * plot_w
             pci_chart.add(String(x, margin_bottom - 4 * mm, f"{km_val:.1f}",
-                                  fontSize=5.5, fontName="Helvetica",
+                                  fontSize=5.5, fontName=REGULAR_FONT,
                                   fillColor=HexColor("#64748b"), textAnchor="middle"))
 
         # Draw PCI line connecting segment midpoints
@@ -352,35 +367,35 @@ def session_pdf_report(request, session_id):
                                   fillColor=HexColor(dot_clr), strokeColor=None))
 
     # Axis titles
-    pci_chart.add(String(margin_left + plot_w / 2, 1 * mm, "Distance (km)",
-                          fontSize=7, fontName="Helvetica-Bold",
+    pci_chart.add(String(margin_left + plot_w / 2, 1 * mm, _("Distance (km)"),
+                          fontSize=7, fontName=BOLD_FONT,
                           fillColor=HexColor("#334155"), textAnchor="middle"))
     pci_chart.add(String(2 * mm, margin_bottom + plot_h / 2, "PCI",
-                          fontSize=7, fontName="Helvetica-Bold",
+                          fontSize=7, fontName=BOLD_FONT,
                           fillColor=HexColor("#334155"), textAnchor="middle"))
 
     story.append(pci_chart)
     story.append(Spacer(1, 6 * mm))
 
     # ── Top 10 Worst Segments Table ──
-    story.append(Paragraph("Top 10 Worst Segments", h3_style))
+    story.append(Paragraph(_("Top 10 Worst Segments"), h3_style))
     worst = list(segments.order_by("pci_score")[:10])
     if worst:
-        worst_header = ["Seg #", "PCI", "Condition", "Defects", "Location (km)"]
+        worst_header = [_("Seg #"), "PCI", _("Condition"), _("Defects"), _("Location (km)")]
         worst_rows = [worst_header]
         for seg in worst:
             worst_rows.append([
                 str(seg.segment_index),
                 f"{seg.pci_score:.1f}" if seg.pci_score is not None else "—",
-                (seg.condition_rating or "—").replace("_", " ").title(),
+                _rating_label(seg.condition_rating),
                 str(seg.defect_count),
                 f"{seg.start_km:.2f} - {seg.end_km:.2f}",
             ])
 
         wt = Table(worst_rows, colWidths=[20 * mm, 20 * mm, 35 * mm, 25 * mm, 35 * mm])
         wt.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTNAME", (0, 0), (-1, 0), BOLD_FONT),
+            ("FONTNAME", (0, 1), (-1, -1), REGULAR_FONT),
             ("FONTSIZE", (0, 0), (-1, -1), 8.5),
             ("BACKGROUND", (0, 0), (-1, 0), HexColor("#fef2f2")),
             ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#991b1b")),
@@ -393,7 +408,7 @@ def session_pdf_report(request, session_id):
         ]))
         story.append(wt)
     else:
-        story.append(Paragraph("No segments recorded.", body_style))
+        story.append(Paragraph(_("No segments recorded."), body_style))
 
     story.append(Spacer(1, 6 * mm))
 
@@ -410,10 +425,13 @@ def session_pdf_report(request, session_id):
         )
 
     if len(history_sessions) > 1:
-        story.append(Paragraph("PCI History — Survey Trend", h2_style))
+        story.append(Paragraph(_("PCI History — Survey Trend"), h2_style))
         story.append(Paragraph(
-            f"Historical surveys for <b>{session.road_name}</b> "
-            f"({len(history_sessions)} surveys found).",
+            ngettext(
+                "Historical surveys for <b>%(road)s</b> (%(count)d survey found).",
+                "Historical surveys for <b>%(road)s</b> (%(count)d surveys found).",
+                len(history_sessions),
+            ) % {"road": session.road_name, "count": len(history_sessions)},
             body_style,
         ))
         story.append(Spacer(1, 4 * mm))
@@ -442,7 +460,7 @@ def session_pdf_report(request, session_id):
             hist_drawing.add(Line(hist_margin_left, y, hist_margin_left + hist_plot_w, y,
                                    strokeColor=HexColor("#e2e8f0"), strokeWidth=0.3))
             hist_drawing.add(String(hist_margin_left - 2 * mm, y - 1 * mm, str(pci_val),
-                                     fontSize=6, fontName="Helvetica",
+                                     fontSize=6, fontName=REGULAR_FONT,
                                      fillColor=HexColor("#64748b"), textAnchor="end"))
 
         n_bars = len(history_sessions)
@@ -462,32 +480,32 @@ def session_pdf_report(request, session_id):
             # PCI value on top of bar
             hist_drawing.add(String(x + bar_width / 2, y + bar_h + 1 * mm,
                                      f"{pci_val:.0f}",
-                                     fontSize=6, fontName="Helvetica-Bold",
+                                     fontSize=6, fontName=BOLD_FONT,
                                      fillColor=HexColor("#0f172a"), textAnchor="middle"))
 
             # Date label below bar
             date_str = hist_sess.start_time.strftime("%Y-%m-%d") if hist_sess.start_time else "—"
             hist_drawing.add(String(x + bar_width / 2, hist_margin_bottom - 5 * mm,
-                                     date_str, fontSize=5, fontName="Helvetica",
+                                     date_str, fontSize=5, fontName=REGULAR_FONT,
                                      fillColor=HexColor("#64748b"), textAnchor="middle"))
 
             # Mark current session
             if hist_sess.pk == session.pk:
                 hist_drawing.add(String(x + bar_width / 2, hist_margin_bottom - 9 * mm,
-                                         "(current)", fontSize=5, fontName="Helvetica-Bold",
+                                         _("(current)"), fontSize=5, fontName=BOLD_FONT,
                                          fillColor=HexColor("#3b82f6"), textAnchor="middle"))
 
         # Axis title
         hist_drawing.add(String(hist_margin_left + hist_plot_w / 2, 1 * mm,
-                                 "Survey Date",
-                                 fontSize=7, fontName="Helvetica-Bold",
+                                 _("Survey Date"),
+                                 fontSize=7, fontName=BOLD_FONT,
                                  fillColor=HexColor("#334155"), textAnchor="middle"))
 
         story.append(hist_drawing)
         story.append(Spacer(1, 4 * mm))
 
         # History table
-        hist_header = ["Date", "Avg PCI", "Distance (km)", "Defects", "Condition"]
+        hist_header = [_("Date"), _("Avg PCI"), _("Distance (km)"), _("Defects"), _("Condition")]
         hist_rows = [hist_header]
         for hist_sess in history_sessions:
             hist_rows.append([
@@ -495,13 +513,13 @@ def session_pdf_report(request, session_id):
                 f"{hist_sess.avg_pci:.1f}" if hist_sess.avg_pci is not None else "—",
                 f"{hist_sess.distance_km:.2f}" if hist_sess.distance_km else "—",
                 str(hist_sess.total_defects),
-                (hist_sess.condition_rating or "—").replace("_", " ").title(),
+                _rating_label(hist_sess.condition_rating),
             ])
 
         ht = Table(hist_rows, colWidths=[30 * mm, 25 * mm, 30 * mm, 25 * mm, 35 * mm])
         ht_style_cmds = [
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTNAME", (0, 0), (-1, 0), BOLD_FONT),
+            ("FONTNAME", (0, 1), (-1, -1), REGULAR_FONT),
             ("FONTSIZE", (0, 0), (-1, -1), 8),
             ("BACKGROUND", (0, 0), (-1, 0), HexColor("#eff6ff")),
             ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#1e40af")),
@@ -516,7 +534,7 @@ def session_pdf_report(request, session_id):
         for row_idx, hist_sess in enumerate(history_sessions, start=1):
             if hist_sess.pk == session.pk:
                 ht_style_cmds.append(("BACKGROUND", (0, row_idx), (-1, row_idx), HexColor("#dbeafe")))
-                ht_style_cmds.append(("FONTNAME", (0, row_idx), (-1, row_idx), "Helvetica-Bold"))
+                ht_style_cmds.append(("FONTNAME", (0, row_idx), (-1, row_idx), BOLD_FONT))
         ht.setStyle(TableStyle(ht_style_cmds))
         story.append(ht)
         story.append(Spacer(1, 4 * mm))
@@ -526,20 +544,31 @@ def session_pdf_report(request, session_id):
         last_pci = history_sessions[-1].avg_pci or 0
         n_surveys = len(history_sessions)
         if last_pci > first_pci:
-            trend_word = "improved"
+            trend_template = ngettext(
+                "Trend: PCI improved from %(first)s to %(last)s over %(count)d survey.",
+                "Trend: PCI improved from %(first)s to %(last)s over %(count)d surveys.",
+                n_surveys,
+            )
         elif last_pci < first_pci:
-            trend_word = "declined"
+            trend_template = ngettext(
+                "Trend: PCI declined from %(first)s to %(last)s over %(count)d survey.",
+                "Trend: PCI declined from %(first)s to %(last)s over %(count)d surveys.",
+                n_surveys,
+            )
         else:
-            trend_word = "remained stable"
+            trend_template = ngettext(
+                "Trend: PCI remained stable from %(first)s to %(last)s over %(count)d survey.",
+                "Trend: PCI remained stable from %(first)s to %(last)s over %(count)d surveys.",
+                n_surveys,
+            )
 
         trend_style = ParagraphStyle(
             "Trend", parent=styles["Normal"],
             fontSize=9, leading=13, textColor=HexColor("#1e40af"),
-            fontName="Helvetica-Bold",
+            fontName=BOLD_FONT,
         )
         story.append(Paragraph(
-            f"Trend: PCI {trend_word} from {first_pci:.1f} to {last_pci:.1f} "
-            f"over {n_surveys} surveys.",
+            trend_template % {"first": f"{first_pci:.1f}", "last": f"{last_pci:.1f}", "count": n_surveys},
             trend_style,
         ))
 
@@ -549,21 +578,21 @@ def session_pdf_report(request, session_id):
     # PAGE 3: DEFECT INVENTORY
     # ═══════════════════════════════════════════════════════════════════
     story.append(PageBreak())
-    story.append(Paragraph("Defect Inventory", h2_style))
+    story.append(Paragraph(_("Defect Inventory"), h2_style))
 
     # By type
-    story.append(Paragraph("Defects by Type", h3_style))
+    story.append(Paragraph(_("Defects by Type"), h3_style))
     if type_counts:
-        type_header = ["Defect Type", "Count", "Percentage"]
+        type_header = [_("Defect Type"), _("Count"), _("Percentage")]
         type_rows = [type_header]
         for name, cnt in sorted(type_counts.items(), key=lambda x: -x[1]):
             pct = cnt / total_detections * 100 if total_detections else 0
-            type_rows.append([name, str(cnt), f"{pct:.1f}%"])
+            type_rows.append([_(name), str(cnt), f"{pct:.1f}%"])
 
         tt = Table(type_rows, colWidths=[60 * mm, 25 * mm, 30 * mm])
         tt.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTNAME", (0, 0), (-1, 0), BOLD_FONT),
+            ("FONTNAME", (0, 1), (-1, -1), REGULAR_FONT),
             ("FONTSIZE", (0, 0), (-1, -1), 9),
             ("BACKGROUND", (0, 0), (-1, 0), HexColor("#f1f5f9")),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
@@ -574,26 +603,26 @@ def session_pdf_report(request, session_id):
         ]))
         story.append(tt)
     else:
-        story.append(Paragraph("No defects detected.", body_style))
+        story.append(Paragraph(_("No defects detected."), body_style))
 
     story.append(Spacer(1, 6 * mm))
 
     # By severity
-    story.append(Paragraph("Defects by Severity", h3_style))
-    sev_header = ["Severity", "Count", "Percentage", ""]
+    story.append(Paragraph(_("Defects by Severity"), h3_style))
+    sev_header = [_("Severity"), _("Count"), _("Percentage"), ""]
     sev_rows = [sev_header]
     for sev in ["critical", "high", "medium", "low"]:
         cnt = severity_counts.get(sev, 0)
         if cnt > 0:
             pct = cnt / total_detections * 100 if total_detections else 0
             bar = chr(9608) * max(1, int(pct / 2))
-            sev_rows.append([sev.title(), str(cnt), f"{pct:.1f}%", bar])
+            sev_rows.append([_severity_label(sev), str(cnt), f"{pct:.1f}%", bar])
 
     if len(sev_rows) > 1:
-        svt = Table(sev_rows, colWidths=[30 * mm, 20 * mm, 25 * mm, 80 * mm])
+        svt = Table(sev_rows, colWidths=[42 * mm, 26 * mm, 22 * mm, 70 * mm])
         svt.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+            ("FONTNAME", (0, 0), (-1, 0), BOLD_FONT),
+            ("FONTNAME", (0, 1), (-1, -1), REGULAR_FONT),
             ("FONTSIZE", (0, 0), (-1, -1), 8.5),
             ("BACKGROUND", (0, 0), (-1, 0), HexColor("#f1f5f9")),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
@@ -604,10 +633,10 @@ def session_pdf_report(request, session_id):
         ]))
         for sev, clr in SEVERITY_COLORS.items():
             if severity_counts.get(sev, 0) > 0:
-                idx = [r[0] for r in sev_rows].index(sev.title())
+                idx = [r[0] for r in sev_rows].index(_severity_label(sev))
                 svt.setStyle(TableStyle([
                     ("TEXTCOLOR", (0, idx), (0, idx), HexColor(clr)),
-                    ("FONTNAME", (0, idx), (0, idx), "Helvetica-Bold"),
+                    ("FONTNAME", (0, idx), (0, idx), BOLD_FONT),
                     ("TEXTCOLOR", (3, idx), (3, idx), HexColor(clr)),
                 ]))
         story.append(svt)
@@ -616,7 +645,7 @@ def session_pdf_report(request, session_id):
     # PAGE 4: RECOMMENDATIONS
     # ═══════════════════════════════════════════════════════════════════
     story.append(PageBreak())
-    story.append(Paragraph("Maintenance Recommendations", h2_style))
+    story.append(Paragraph(_("Maintenance Recommendations"), h2_style))
 
     recs = _generate_recommendations(avg_pci, severity_counts, type_counts, distance)
     for rec in recs:
@@ -626,34 +655,36 @@ def session_pdf_report(request, session_id):
     story.append(Spacer(1, 10 * mm))
 
     # Methodology note
-    story.append(Paragraph("Methodology", h3_style))
+    story.append(Paragraph(_("Methodology"), h3_style))
     story.append(Paragraph(
-        "This assessment was conducted using the ZaminTwin.ai automated road inspection system. "
-        "A vehicle-mounted camera captures road surface imagery while GPS tracks the route. "
-        "An AI model (YOLO-based, running on NVIDIA Jetson) detects pavement defects in real-time. "
-        "The Pavement Condition Index (PCI) is calculated per 100-meter road segment based on "
-        "defect type, severity, and density, following principles from ASTM D6433. "
-        "PCI ranges from 0 (failed) to 100 (perfect condition).",
+        _(
+            "This assessment was conducted using the ZaminTwin.ai automated road inspection system. "
+            "A vehicle-mounted camera captures road surface imagery while GPS tracks the route. "
+            "An AI model (YOLO-based, running on NVIDIA Jetson) detects pavement defects in real-time. "
+            "The Pavement Condition Index (PCI) is calculated per 100-meter road segment based on "
+            "defect type, severity, and density, following principles from ASTM D6433. "
+            "PCI ranges from 0 (failed) to 100 (perfect condition)."
+        ),
         body_style,
     ))
 
     story.append(Spacer(1, 8 * mm))
 
     # PCI Scale reference
-    story.append(Paragraph("PCI Rating Scale", h3_style))
+    story.append(Paragraph(_("PCI Rating Scale"), h3_style))
     scale_data = [
-        ["Score Range", "Rating", "Action"],
-        ["85 - 100", "Good", "Routine maintenance only"],
-        ["70 - 84", "Satisfactory", "Preventive maintenance (1-2 years)"],
-        ["55 - 69", "Fair", "Crack sealing and patching needed"],
-        ["40 - 54", "Poor", "Rehabilitation / overlay required"],
-        ["25 - 39", "Very Poor", "Major rehabilitation needed"],
-        ["0 - 24", "Failed", "Full reconstruction required"],
+        [_("Score Range"), _("Rating"), _("Action")],
+        ["85 - 100", _rating_label("good"), _("Routine maintenance only")],
+        ["70 - 84", _rating_label("satisfactory"), _("Preventive maintenance (1-2 years)")],
+        ["55 - 69", _rating_label("fair"), _("Crack sealing and patching needed")],
+        ["40 - 54", _rating_label("poor"), _("Rehabilitation / overlay required")],
+        ["25 - 39", _rating_label("very_poor"), _("Major rehabilitation needed")],
+        ["0 - 24", _rating_label("failed"), _("Full reconstruction required")],
     ]
-    sct = Table(scale_data, colWidths=[30 * mm, 30 * mm, 80 * mm])
+    sct = Table(scale_data, colWidths=[34 * mm, 42 * mm, 94 * mm])
     sct.setStyle(TableStyle([
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+        ("FONTNAME", (0, 0), (-1, 0), BOLD_FONT),
+        ("FONTNAME", (0, 1), (-1, -1), REGULAR_FONT),
         ("FONTSIZE", (0, 0), (-1, -1), 8.5),
         ("BACKGROUND", (0, 0), (-1, 0), HexColor("#f1f5f9")),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
@@ -667,7 +698,7 @@ def session_pdf_report(request, session_id):
     for i, clr in enumerate(rating_colors):
         sct.setStyle(TableStyle([
             ("TEXTCOLOR", (1, i + 1), (1, i + 1), HexColor(clr)),
-            ("FONTNAME", (1, i + 1), (1, i + 1), "Helvetica-Bold"),
+            ("FONTNAME", (1, i + 1), (1, i + 1), BOLD_FONT),
         ]))
     story.append(sct)
 
@@ -675,9 +706,10 @@ def session_pdf_report(request, session_id):
 
     # Footer
     story.append(Paragraph(
-        f"Report generated by ZaminTwin.ai Road Inspection Platform. "
-        f"Session: {session.session_id} | "
-        f"PCI evaluation follows ASTM D6433 methodology.",
+        _(
+            "Report generated by ZaminTwin.ai Road Inspection Platform. "
+            "Session: %(session)s | PCI evaluation follows ASTM D6433 methodology."
+        ) % {"session": session.session_id},
         small_style,
     ))
 
@@ -694,33 +726,34 @@ def session_pdf_report(request, session_id):
 def _generate_recommendations(avg_pci, severity_counts, type_counts, distance_km):
     """Generate maintenance recommendations based on assessment data."""
     recs = []
+    pci = {"pci": f"{avg_pci:.1f}"}
 
     # Overall condition recommendation
     if avg_pci >= 85:
-        recs.append(
-            f"Overall road condition is Good (PCI {avg_pci:.1f}). "
-            f"Continue routine maintenance and periodic monitoring."
-        )
+        recs.append(_(
+            "Overall road condition is Good (PCI %(pci)s). "
+            "Continue routine maintenance and periodic monitoring."
+        ) % pci)
     elif avg_pci >= 70:
-        recs.append(
-            f"Overall road condition is Satisfactory (PCI {avg_pci:.1f}). "
-            f"Schedule preventive maintenance within 1-2 years to prevent further deterioration."
-        )
+        recs.append(_(
+            "Overall road condition is Satisfactory (PCI %(pci)s). "
+            "Schedule preventive maintenance within 1-2 years to prevent further deterioration."
+        ) % pci)
     elif avg_pci >= 55:
-        recs.append(
-            f"Overall road condition is Fair (PCI {avg_pci:.1f}). "
-            f"Crack sealing and localized patching are recommended within 6-12 months."
-        )
+        recs.append(_(
+            "Overall road condition is Fair (PCI %(pci)s). "
+            "Crack sealing and localized patching are recommended within 6-12 months."
+        ) % pci)
     elif avg_pci >= 40:
-        recs.append(
-            f"Overall road condition is Poor (PCI {avg_pci:.1f}). "
-            f"Rehabilitation is needed. Consider asphalt overlay for the most affected sections."
-        )
+        recs.append(_(
+            "Overall road condition is Poor (PCI %(pci)s). "
+            "Rehabilitation is needed. Consider asphalt overlay for the most affected sections."
+        ) % pci)
     else:
-        recs.append(
-            f"Overall road condition is Very Poor to Failed (PCI {avg_pci:.1f}). "
-            f"Major rehabilitation or full reconstruction is urgently required."
-        )
+        recs.append(_(
+            "Overall road condition is Very Poor to Failed (PCI %(pci)s). "
+            "Major rehabilitation or full reconstruction is urgently required."
+        ) % pci)
 
     # Specific defect recommendations
     potholes = sum(v for k, v in type_counts.items() if "pothole" in k.lower())
@@ -728,37 +761,49 @@ def _generate_recommendations(avg_pci, severity_counts, type_counts, distance_km
 
     if potholes > 0:
         density = potholes / distance_km if distance_km > 0 else 0
-        recs.append(
-            f"{potholes} potholes detected ({density:.1f} per km). "
-            f"Priority patching recommended for all critical and high severity potholes."
-        )
+        recs.append(ngettext(
+            "%(count)d pothole detected (%(density)s per km). "
+            "Priority patching recommended for all critical and high severity potholes.",
+            "%(count)d potholes detected (%(density)s per km). "
+            "Priority patching recommended for all critical and high severity potholes.",
+            potholes,
+        ) % {"count": potholes, "density": f"{density:.1f}"})
 
     if cracks > 0:
-        recs.append(
-            f"{cracks} crack defects detected across the surveyed route. "
-            f"Crack sealing should be applied to prevent water infiltration and further deterioration."
-        )
+        recs.append(ngettext(
+            "%(count)d crack defect detected across the surveyed route. "
+            "Crack sealing should be applied to prevent water infiltration and further deterioration.",
+            "%(count)d crack defects detected across the surveyed route. "
+            "Crack sealing should be applied to prevent water infiltration and further deterioration.",
+            cracks,
+        ) % {"count": cracks})
 
     # Severity-based recommendations
     critical = severity_counts.get("critical", 0)
     if critical > 0:
-        recs.append(
-            f"{critical} critical-severity defects require immediate attention. "
-            f"These pose safety hazards and should be addressed within 30 days."
-        )
+        recs.append(ngettext(
+            "%(count)d critical-severity defect requires immediate attention. "
+            "It poses a safety hazard and should be addressed within 30 days.",
+            "%(count)d critical-severity defects require immediate attention. "
+            "These pose safety hazards and should be addressed within 30 days.",
+            critical,
+        ) % {"count": critical})
 
     high = severity_counts.get("high", 0)
     if high > 5:
-        recs.append(
-            f"{high} high-severity defects detected. "
-            f"Schedule repair within the next maintenance cycle (60-90 days)."
-        )
+        recs.append(ngettext(
+            "%(count)d high-severity defect detected. "
+            "Schedule repair within the next maintenance cycle (60-90 days).",
+            "%(count)d high-severity defects detected. "
+            "Schedule repair within the next maintenance cycle (60-90 days).",
+            high,
+        ) % {"count": high})
 
     # General
-    recs.append(
+    recs.append(_(
         "Re-survey this road section in 3-6 months to track condition changes "
         "and verify the effectiveness of any maintenance actions taken."
-    )
+    ))
 
     return recs
 
@@ -770,17 +815,17 @@ def multi_session_pdf_report(request):
     try:
         session_ids = [int(x) for x in ids_str.split(",") if x.strip()]
     except ValueError:
-        return HttpResponse("Invalid session IDs", status=400)
+        return HttpResponse(_("Invalid session IDs"), status=400)
 
     if not session_ids:
-        return HttpResponse("No sessions specified", status=400)
+        return HttpResponse(_("No sessions specified"), status=400)
 
     sessions_qs = Session.objects.filter(
         pk__in=session_ids, user=request.user, status=Session.Status.READY,
     ).order_by("road_name", "-start_time")
 
     if not sessions_qs.exists():
-        return HttpResponse("No valid sessions found", status=404)
+        return HttpResponse(_("No valid sessions found"), status=404)
 
     try:
         from reportlab.lib.pagesizes import A4
@@ -794,7 +839,7 @@ def multi_session_pdf_report(request):
         from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
         from reportlab.graphics.shapes import Drawing, Rect, String
     except ImportError:
-        return HttpResponse("reportlab is not installed", status=500)
+        return HttpResponse(_("reportlab is not installed"), status=500)
 
     sessions_list = list(sessions_qs)
 
@@ -803,7 +848,7 @@ def multi_session_pdf_report(request):
     total_defects = sum(s.total_defects for s in sessions_list)
     pcis = [s.avg_pci for s in sessions_list if s.avg_pci is not None]
     avg_pci = sum(pcis) / len(pcis) if pcis else 0
-    overall_rating, _ = _get_overall_rating(avg_pci)
+    overall_rating, _overall_color = _get_overall_rating(avg_pci)
 
     # ── Build PDF ──
     buf = io.BytesIO()
@@ -813,15 +858,15 @@ def multi_session_pdf_report(request):
         topMargin=25 * mm, bottomMargin=20 * mm,
     )
     story = []
-    styles = getSampleStyleSheet()
+    styles = unicode_stylesheet()
 
     brand_color = HexColor("#0f172a")
     accent_color = HexColor("#3b82f6")
 
     title_style = ParagraphStyle(
         "MTitle", parent=styles["Title"],
-        fontSize=24, spaceAfter=4, textColor=brand_color,
-        fontName="Helvetica-Bold",
+        fontSize=24, leading=30, spaceAfter=4, textColor=brand_color,
+        fontName=BOLD_FONT,
     )
     subtitle_style = ParagraphStyle(
         "MSubtitle", parent=styles["Normal"],
@@ -830,12 +875,12 @@ def multi_session_pdf_report(request):
     h2_style = ParagraphStyle(
         "MH2", parent=styles["Heading2"],
         fontSize=14, spaceAfter=8, spaceBefore=16,
-        textColor=brand_color, fontName="Helvetica-Bold",
+        textColor=brand_color, fontName=BOLD_FONT,
     )
     h3_style = ParagraphStyle(
         "MH3", parent=styles["Heading3"],
         fontSize=11, spaceAfter=6, spaceBefore=12,
-        textColor=HexColor("#334155"), fontName="Helvetica-Bold",
+        textColor=HexColor("#334155"), fontName=BOLD_FONT,
     )
     body_style = ParagraphStyle(
         "MBody", parent=styles["Normal"],
@@ -852,14 +897,16 @@ def multi_session_pdf_report(request):
     story.append(Spacer(1, 15 * mm))
     story.append(Paragraph("ZaminTwin.ai", ParagraphStyle(
         "MBrand", parent=styles["Normal"],
-        fontSize=12, textColor=accent_color, fontName="Helvetica-Bold",
+        fontSize=12, textColor=accent_color, fontName=BOLD_FONT,
         spaceAfter=2,
     )))
-    story.append(Paragraph("Multi-Session Road Assessment Report", title_style))
+    story.append(Paragraph(_("Multi-Session Road Assessment Report"), title_style))
     story.append(Paragraph(
-        f"{len(sessions_list)} Sessions &nbsp;|&nbsp; "
-        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')} &nbsp;|&nbsp; "
-        f"Inspector: {request.user.get_full_name() or request.user.username}",
+        _("Sessions: %(count)s &nbsp;|&nbsp; Generated: %(generated)s &nbsp;|&nbsp; Inspector: %(inspector)s") % {
+            "count": len(sessions_list),
+            "generated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "inspector": request.user.get_full_name() or request.user.username,
+        },
         subtitle_style,
     ))
 
@@ -870,29 +917,31 @@ def multi_session_pdf_report(request):
                          fillColor=HexColor(pci_color), fillOpacity=0.1,
                          strokeColor=HexColor(pci_color), strokeWidth=1))
     pci_drawing.add(String(15 * mm, 8 * mm,
-                           f"Average PCI {avg_pci:.1f}  —  {overall_rating.replace('_', ' ').title()}",
-                           fontSize=18, fontName="Helvetica-Bold",
+                           _("Average PCI %(pci)s  —  %(rating)s") % {
+                               "pci": f"{avg_pci:.1f}", "rating": _rating_label(overall_rating),
+                           },
+                           fontSize=18, fontName=BOLD_FONT,
                            fillColor=HexColor(pci_color)))
-    pci_drawing.add(String(130 * mm, 8 * mm,
-                           f"{total_dist:.1f} km total",
-                           fontSize=10, fontName="Helvetica",
-                           fillColor=HexColor("#64748b")))
+    pci_drawing.add(String(165 * mm, 8 * mm,
+                           _("%(distance)s km total") % {"distance": f"{total_dist:.1f}"},
+                           fontSize=10, fontName=REGULAR_FONT,
+                           fillColor=HexColor("#64748b"), textAnchor="end"))
     story.append(pci_drawing)
     story.append(Spacer(1, 8 * mm))
 
     # Network summary table
-    story.append(Paragraph("Network Summary", h2_style))
+    story.append(Paragraph(_("Network Summary"), h2_style))
     summary_data = [
-        ["Total Sessions", str(len(sessions_list))],
-        ["Total Distance", f"{total_dist:.1f} km"],
-        ["Average PCI", f"{avg_pci:.1f} ({overall_rating.replace('_', ' ').title()})"],
-        ["Total Defects", str(total_defects)],
-        ["Defects per km", f"{(total_defects / total_dist):.1f}" if total_dist > 0 else "—"],
+        [_("Total Sessions"), str(len(sessions_list))],
+        [_("Total Distance"), f"{total_dist:.1f} " + _("km")],
+        [_("Average PCI"), f"{avg_pci:.1f} ({_rating_label(overall_rating)})"],
+        [_("Total Defects"), str(total_defects)],
+        [_("Defects per km"), f"{(total_defects / total_dist):.1f}" if total_dist > 0 else "—"],
     ]
-    t = Table(summary_data, colWidths=[50 * mm, 120 * mm])
+    t = Table(summary_data, colWidths=[62 * mm, 108 * mm])
     t.setStyle(TableStyle([
-        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-        ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
+        ("FONTNAME", (0, 0), (0, -1), BOLD_FONT),
+        ("FONTNAME", (1, 0), (1, -1), REGULAR_FONT),
         ("FONTSIZE", (0, 0), (-1, -1), 9),
         ("TEXTCOLOR", (0, 0), (0, -1), HexColor("#64748b")),
         ("TEXTCOLOR", (1, 0), (1, -1), brand_color),
@@ -904,23 +953,23 @@ def multi_session_pdf_report(request):
     story.append(Spacer(1, 8 * mm))
 
     # Session comparison table
-    story.append(Paragraph("Session Comparison", h2_style))
-    comp_header = ["Road Name", "Date", "Distance", "PCI", "Condition", "Defects"]
+    story.append(Paragraph(_("Session Comparison"), h2_style))
+    comp_header = [_("Road Name"), _("Date"), _("Distance"), "PCI", _("Condition"), _("Defects")]
     comp_rows = [comp_header]
     for s in sessions_list:
         comp_rows.append([
             s.display_name[:30],
             s.start_time.strftime("%Y-%m-%d") if s.start_time else "—",
-            f"{s.distance_km:.1f} km",
+            f"{s.distance_km:.1f} " + _("km"),
             f"{s.avg_pci:.1f}" if s.avg_pci is not None else "—",
-            (s.condition_rating or "—").replace("_", " ").title(),
+            _rating_label(s.condition_rating),
             str(s.total_defects),
         ])
 
     ct = Table(comp_rows, colWidths=[45 * mm, 25 * mm, 20 * mm, 18 * mm, 30 * mm, 20 * mm])
     comp_style = [
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+        ("FONTNAME", (0, 0), (-1, 0), BOLD_FONT),
+        ("FONTNAME", (0, 1), (-1, -1), REGULAR_FONT),
         ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("BACKGROUND", (0, 0), (-1, 0), HexColor("#0f172a")),
         ("TEXTCOLOR", (0, 0), (-1, 0), white),
@@ -935,7 +984,7 @@ def multi_session_pdf_report(request):
     for i, s in enumerate(sessions_list, start=1):
         clr = CONDITION_COLORS.get(s.condition_rating, "#64748b")
         comp_style.append(("TEXTCOLOR", (3, i), (3, i), HexColor(clr)))
-        comp_style.append(("FONTNAME", (3, i), (3, i), "Helvetica-Bold"))
+        comp_style.append(("FONTNAME", (3, i), (3, i), BOLD_FONT))
         if i % 2 == 0:
             comp_style.append(("BACKGROUND", (0, i), (-1, i), HexColor("#f8fafc")))
     ct.setStyle(TableStyle(comp_style))
@@ -958,16 +1007,16 @@ def multi_session_pdf_report(request):
 
         # Session stats
         s_data = [
-            ["Date", s.start_time.strftime("%Y-%m-%d %H:%M") if s.start_time else "—"],
-            ["Distance", f"{s.distance_km:.1f} km"],
-            ["PCI Score", f"{pci_val:.1f} ({cond.replace('_', ' ').title()})"],
-            ["Segments", str(segs.count())],
-            ["Total Defects", str(dets.count())],
-            ["Defects/km", f"{(dets.count() / s.distance_km):.1f}" if s.distance_km > 0 else "—"],
+            [_("Date"), s.start_time.strftime("%Y-%m-%d %H:%M") if s.start_time else "—"],
+            [_("Distance"), f"{s.distance_km:.1f} " + _("km")],
+            [_("PCI Score"), f"{pci_val:.1f} ({_rating_label(cond)})"],
+            [_("Segments"), str(segs.count())],
+            [_("Total Defects"), str(dets.count())],
+            [_("Defects/km"), f"{(dets.count() / s.distance_km):.1f}" if s.distance_km > 0 else "—"],
         ]
-        st = Table(s_data, colWidths=[40 * mm, 120 * mm])
+        st = Table(s_data, colWidths=[52 * mm, 108 * mm])
         st.setStyle(TableStyle([
-            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+            ("FONTNAME", (0, 0), (0, -1), BOLD_FONT),
             ("FONTSIZE", (0, 0), (-1, -1), 9),
             ("TEXTCOLOR", (0, 0), (0, -1), HexColor("#64748b")),
             ("TEXTCOLOR", (1, 0), (1, -1), brand_color),
@@ -988,15 +1037,15 @@ def multi_session_pdf_report(request):
                 sev_counts[d.severity] += 1
 
         if type_counts:
-            story.append(Paragraph("Defect Breakdown", h3_style))
-            dt_header = ["Defect Type", "Count", "Severity Distribution"]
+            story.append(Paragraph(_("Defect Breakdown"), h3_style))
+            dt_header = [_("Defect Type"), _("Count"), _("Severity Distribution")]
             dt_rows = [dt_header]
             for name, cnt in sorted(type_counts.items(), key=lambda x: -x[1]):
-                dt_rows.append([name, str(cnt), ""])
+                dt_rows.append([_(name), str(cnt), ""])
             dtt = Table(dt_rows, colWidths=[50 * mm, 20 * mm, 80 * mm])
             dtt.setStyle(TableStyle([
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                ("FONTNAME", (0, 0), (-1, 0), BOLD_FONT),
+                ("FONTNAME", (0, 1), (-1, -1), REGULAR_FONT),
                 ("FONTSIZE", (0, 0), (-1, -1), 8.5),
                 ("BACKGROUND", (0, 0), (-1, 0), HexColor("#f1f5f9")),
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
@@ -1010,21 +1059,21 @@ def multi_session_pdf_report(request):
         # Worst segments (top 5)
         worst = list(segs.order_by("pci_score")[:5])
         if worst:
-            story.append(Paragraph("Critical Segments", h3_style))
-            w_header = ["Seg", "PCI", "Condition", "Defects", "Location"]
+            story.append(Paragraph(_("Critical Segments"), h3_style))
+            w_header = [_("Seg"), "PCI", _("Condition"), _("Defects"), _("Location")]
             w_rows = [w_header]
             for seg in worst:
                 w_rows.append([
                     str(seg.segment_index),
                     f"{seg.pci_score:.1f}" if seg.pci_score is not None else "—",
-                    (seg.condition_rating or "—").replace("_", " ").title(),
+                    _rating_label(seg.condition_rating),
                     str(seg.defect_count),
-                    f"{seg.start_km:.2f}–{seg.end_km:.2f} km",
+                    f"{seg.start_km:.2f}–{seg.end_km:.2f} " + _("km"),
                 ])
             wt = Table(w_rows, colWidths=[15 * mm, 18 * mm, 35 * mm, 20 * mm, 30 * mm])
             wt.setStyle(TableStyle([
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                ("FONTNAME", (0, 0), (-1, 0), BOLD_FONT),
+                ("FONTNAME", (0, 1), (-1, -1), REGULAR_FONT),
                 ("FONTSIZE", (0, 0), (-1, -1), 8),
                 ("BACKGROUND", (0, 0), (-1, 0), HexColor("#fef2f2")),
                 ("TEXTCOLOR", (0, 0), (-1, 0), HexColor("#991b1b")),
@@ -1040,7 +1089,7 @@ def multi_session_pdf_report(request):
     # FINAL PAGE: RECOMMENDATIONS
     # ═══════════════════════════════════════════════════════════════════
     story.append(PageBreak())
-    story.append(Paragraph("Maintenance Recommendations", h2_style))
+    story.append(Paragraph(_("Maintenance Recommendations"), h2_style))
 
     # Aggregate recommendations
     total_type_counts = {}
@@ -1059,29 +1108,29 @@ def multi_session_pdf_report(request):
 
     # Priority roads
     story.append(Spacer(1, 6 * mm))
-    story.append(Paragraph("Priority Roads for Maintenance", h3_style))
+    story.append(Paragraph(_("Priority Roads for Maintenance"), h3_style))
     priority = sorted(sessions_list, key=lambda s: s.avg_pci or 100)[:10]
-    pr_header = ["Priority", "Road", "PCI", "Condition", "Action Needed"]
+    pr_header = [_("Priority"), _("Road"), "PCI", _("Condition"), _("Action Needed")]
     pr_rows = [pr_header]
     for i, s in enumerate(priority, 1):
         pci_val = s.avg_pci or 0
-        cond = (s.condition_rating or "unknown").replace("_", " ").title()
+        cond = _rating_label(s.condition_rating or "unknown")
         if pci_val >= 70:
-            action = "Preventive maintenance"
+            action = _("Preventive maintenance")
         elif pci_val >= 55:
-            action = "Crack sealing & patching"
+            action = _("Crack sealing & patching")
         elif pci_val >= 40:
-            action = "Rehabilitation / overlay"
+            action = _("Rehabilitation / overlay")
         elif pci_val >= 25:
-            action = "Major rehabilitation"
+            action = _("Major rehabilitation")
         else:
-            action = "Full reconstruction"
+            action = _("Full reconstruction")
         pr_rows.append([str(i), s.display_name[:25], f"{pci_val:.1f}", cond, action])
 
-    pt = Table(pr_rows, colWidths=[15 * mm, 45 * mm, 18 * mm, 30 * mm, 50 * mm])
+    pt = Table(pr_rows, colWidths=[24 * mm, 42 * mm, 14 * mm, 36 * mm, 54 * mm])
     pt_style = [
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+        ("FONTNAME", (0, 0), (-1, 0), BOLD_FONT),
+        ("FONTNAME", (0, 1), (-1, -1), REGULAR_FONT),
         ("FONTSIZE", (0, 0), (-1, -1), 8.5),
         ("BACKGROUND", (0, 0), (-1, 0), HexColor("#0f172a")),
         ("TEXTCOLOR", (0, 0), (-1, 0), white),
@@ -1095,14 +1144,16 @@ def multi_session_pdf_report(request):
     for i, s in enumerate(priority, 1):
         clr = CONDITION_COLORS.get(s.condition_rating, "#64748b")
         pt_style.append(("TEXTCOLOR", (2, i), (2, i), HexColor(clr)))
-        pt_style.append(("FONTNAME", (2, i), (2, i), "Helvetica-Bold"))
+        pt_style.append(("FONTNAME", (2, i), (2, i), BOLD_FONT))
     pt.setStyle(TableStyle(pt_style))
     story.append(pt)
 
     story.append(Spacer(1, 15 * mm))
     story.append(Paragraph(
-        f"Report generated by ZaminTwin.ai Road Inspection Platform. "
-        f"{len(sessions_list)} sessions | {datetime.now().strftime('%Y-%m-%d')}",
+        _("Report generated by ZaminTwin.ai Road Inspection Platform. Sessions: %(count)s | %(date)s") % {
+            "count": len(sessions_list),
+            "date": datetime.now().strftime("%Y-%m-%d"),
+        },
         small_style,
     ))
 

@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}Map View — {{ project.name }}{% endblock %}
+{% block title %}{% translate "Map View" %} — {{ project.name }}{% endblock %}
 
 {% block style %}
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -167,25 +167,25 @@
     <div class="map-topbar" id="mapTopbar">
         <div class="map-topbar-stat">
             <div class="map-topbar-value mono" id="mtTotalKm">—</div>
-            <div class="map-topbar-label">Total Length</div>
+            <div class="map-topbar-label">{% translate "Total Length" %}</div>
         </div>
         <div class="map-topbar-divider"></div>
         <div class="map-topbar-stat">
             <div class="map-topbar-value mono" id="mtTiles">—</div>
-            <div class="map-topbar-label">Tiles</div>
+            <div class="map-topbar-label">{% translate "Tiles" %}</div>
         </div>
         <div class="map-topbar-divider"></div>
         <div class="map-topbar-stat">
             <div class="map-topbar-value mono" id="mtAvgPci">—</div>
-            <div class="map-topbar-label">Avg PCI</div>
+            <div class="map-topbar-label">{% translate "Avg PCI" %}</div>
         </div>
         <div class="map-topbar-divider"></div>
         <div style="flex:1;min-width:100px;">
-            <div class="map-topbar-label mb-1">Condition</div>
+            <div class="map-topbar-label mb-1">{% translate "Condition" %}</div>
             <div class="map-topbar-bar" id="mtCondBar"></div>
         </div>
         <div class="map-topbar-actions">
-            <a href="{% url 'analysis:results' project.id %}" style="background:#3b82f6;"><i class="fa fa-chart-bar"></i> Dashboard</a>
+            <a href="{% url 'analysis:results' project.id %}" style="background:#3b82f6;"><i class="fa fa-chart-bar"></i> {% translate "Dashboard" %}</a>
             <a href="{% url 'analysis:download' project.id %}" style="background:#059669;"><i class="fa fa-download"></i> CSV</a>
         </div>
     </div>
@@ -193,20 +193,20 @@
     {# Side panel for tile details #}
     <div class="map-sidepanel" id="sidePanel">
         <div class="sidepanel-head">
-            <h6><i class="fa fa-search-plus" style="color:var(--accent);margin-right:6px;"></i> <span id="spTitle">Tile Detail</span></h6>
+            <h6><i class="fa fa-search-plus" style="color:var(--accent);margin-right:6px;"></i> <span id="spTitle">{% translate "Tile Detail" %}</span></h6>
             <button class="sidepanel-close" id="spClose"><i class="fa fa-times"></i></button>
         </div>
         <div class="sidepanel-body">
             <div class="sidepanel-img" id="spImg">
-                <span style="color:rgba(255,255,255,0.4);font-size:0.8rem;">No image</span>
+                <span style="color:rgba(255,255,255,0.4);font-size:0.8rem;">{% translate "No image" %}</span>
             </div>
             <table class="sp-tbl" id="spTbl">
-                <tr><th>Condition</th><td id="spCond">—</td></tr>
-                <tr><th>PCI Score</th><td id="spPci" class="mono">—</td></tr>
-                <tr><th>Crack Length</th><td id="spCrack" class="mono">—</td></tr>
-                <tr><th>Alligator</th><td id="spAlr" class="mono">—</td></tr>
-                <tr><th>Patching</th><td id="spPatch" class="mono">—</td></tr>
-                <tr><th>Pothole</th><td id="spPot" class="mono">—</td></tr>
+                <tr><th>{% translate "Condition" %}</th><td id="spCond">—</td></tr>
+                <tr><th>{% translate "PCI Score" %}</th><td id="spPci" class="mono">—</td></tr>
+                <tr><th>{% translate "Crack Length" %}</th><td id="spCrack" class="mono">—</td></tr>
+                <tr><th>{% translate "Alligator" %}</th><td id="spAlr" class="mono">—</td></tr>
+                <tr><th>{% translate "Patching" %}</th><td id="spPatch" class="mono">—</td></tr>
+                <tr><th>{% translate "Pothole" %}</th><td id="spPot" class="mono">—</td></tr>
                 <tr><th>GPS</th><td id="spGps" class="mono" style="font-size:0.75rem;">—</td></tr>
             </table>
         </div>
@@ -214,20 +214,20 @@
 
     {# PCI Legend #}
     <div class="map-legend">
-        <div class="map-legend-title">PCI Score</div>
-        <div class="legend-row"><div class="legend-dot" style="background:#22c55e;"></div> Good (86-100)</div>
-        <div class="legend-row"><div class="legend-dot" style="background:#84cc16;"></div> Satisfactory (71-85)</div>
-        <div class="legend-row"><div class="legend-dot" style="background:#eab308;"></div> Fair (56-70)</div>
-        <div class="legend-row"><div class="legend-dot" style="background:#f97316;"></div> Poor (41-55)</div>
-        <div class="legend-row"><div class="legend-dot" style="background:#ef4444;"></div> Very Poor (26-40)</div>
-        <div class="legend-row"><div class="legend-dot" style="background:#dc2626;"></div> Serious (11-25)</div>
-        <div class="legend-row"><div class="legend-dot" style="background:#991b1b;"></div> Failed (0-10)</div>
+        <div class="map-legend-title">{% translate "PCI Score" %}</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#22c55e;"></div> {% translate "Good" %} (86-100)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#84cc16;"></div> {% translate "Satisfactory" %} (71-85)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#eab308;"></div> {% translate "Fair" %} (56-70)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#f97316;"></div> {% translate "Poor" %} (41-55)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#ef4444;"></div> {% translate "Very Poor" %} (26-40)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#dc2626;"></div> {% translate "Serious" %} (11-25)</div>
+        <div class="legend-row"><div class="legend-dot" style="background:#991b1b;"></div> {% translate "Failed" context "pavement condition" %} (0-10)</div>
     </div>
 
     {# Section nav #}
     <div class="map-section-nav">
-        <button id="navPrev" title="Previous section"><i class="fa fa-chevron-left"></i></button>
-        <button id="navNext" title="Next section"><i class="fa fa-chevron-right"></i></button>
+        <button id="navPrev" title="{% translate 'Previous section' %}"><i class="fa fa-chevron-left"></i></button>
+        <button id="navNext" title="{% translate 'Next section' %}"><i class="fa fa-chevron-right"></i></button>
     </div>
 
     {# Fullscreen image modal #}
@@ -285,10 +285,10 @@ $(document).ready(function() {
     });
     var avg = details.length ? totalPci/details.length : 0;
     $('#mtAvgPci').text(avg.toFixed(1)+'%');
-    $('#mtTotalKm').text((details.length*10/1000).toFixed(2)+' km');
+    $('#mtTotalKm').text((details.length*10/1000).toFixed(2)+' {{ _("km")|escapejs }}');
     $('#mtTiles').text(details.length);
     var barH='';
-    condOrder.forEach(function(c){if(condCounts[c]){barH+='<div style="width:'+(condCounts[c]/details.length*100)+'%;background:'+condColors[c]+'" title="'+c+': '+condCounts[c]+'"></div>';}});
+    condOrder.forEach(function(c){if(condCounts[c]){barH+='<div style="width:'+(condCounts[c]/details.length*100)+'%;background:'+condColors[c]+'" title="'+trCondition(c)+': '+condCounts[c]+'"></div>';}});
     $('#mtCondBar').html(barH);
 
     // ===== MAP =====
@@ -305,7 +305,7 @@ $(document).ready(function() {
             var m=L.circleMarker([gps.lat,gps.lng],{
                 radius:8, fillColor:pciColor(d.pci_rating), color:'#fff', weight:2, fillOpacity:0.9
             }).addTo(map);
-            m.bindTooltip('<b>Section '+(idx+1)+'</b><br>PCI: '+d.pci_rating.toFixed(0)+'%<br>'+d.pav_condition,{direction:'top',offset:[0,-10]});
+            m.bindTooltip('<b>'+fmt('{{ _("Section %(number)s")|escapejs }}', {number: idx+1})+'</b><br>PCI: '+d.pci_rating.toFixed(0)+'%<br>'+trCondition(d.pav_condition),{direction:'top',offset:[0,-10]});
             m.on('click',function(){ selectSection(idx); });
             markers.push({m:m,idx:idx,gps:gps});
         }
@@ -324,20 +324,20 @@ $(document).ready(function() {
 
         // Side panel
         $('#sidePanel').addClass('show');
-        $('#spTitle').text('Section '+(idx+1)+' / '+details.length);
-        $('#spCond').html('<span class="cond-badge '+condClass(d.pav_condition)+'">'+d.pav_condition+'</span>');
+        $('#spTitle').text(fmt('{{ _("Section %(number)s / %(total)s")|escapejs }}', {number: idx+1, total: details.length}));
+        $('#spCond').html('<span class="cond-badge '+condClass(d.pav_condition)+'">'+trCondition(d.pav_condition)+'</span>');
         $('#spPci').text(d.pci_rating.toFixed(1)+'%');
-        $('#spCrack').text(d.crack_len>0?d.crack_len.toFixed(2)+' m':'None');
-        $('#spAlr').text(d.alr_area>0?d.alr_area.toFixed(2)+' m²':'None');
-        $('#spPatch').text(d.patching_area>0?d.patching_area.toFixed(2)+' m²':'None');
-        $('#spPot').text(d.pothole_area>0?d.pothole_area.toFixed(2)+' m²':'None');
+        $('#spCrack').text(d.crack_len>0?d.crack_len.toFixed(2)+' {{ _("m")|escapejs }}':'{{ _("None")|escapejs }}');
+        $('#spAlr').text(d.alr_area>0?d.alr_area.toFixed(2)+' {{ _("m²")|escapejs }}':'{{ _("None")|escapejs }}');
+        $('#spPatch').text(d.patching_area>0?d.patching_area.toFixed(2)+' {{ _("m²")|escapejs }}':'{{ _("None")|escapejs }}');
+        $('#spPot').text(d.pothole_area>0?d.pothole_area.toFixed(2)+' {{ _("m²")|escapejs }}':'{{ _("None")|escapejs }}');
         var gps=parseGPS(imgName);
-        $('#spGps').text(gps?gps.lat.toFixed(6)+', '+gps.lng.toFixed(6):'N/A');
+        $('#spGps').text(gps?gps.lat.toFixed(6)+', '+gps.lng.toFixed(6):'{{ _("N/A")|escapejs }}');
 
         // Image
         if(imgName) {
             var ext = imgName.indexOf('.')>-1 ? '' : '.jpg';
-            $('#spImg').html('<img src="'+imagePath+imgName+ext+'" alt="Section '+(idx+1)+'">');
+            $('#spImg').html('<img src="'+imagePath+imgName+ext+'" alt="'+fmt('{{ _("Section %(number)s")|escapejs }}', {number: idx+1})+'">');
         }
 
         // Highlight marker
@@ -361,8 +361,8 @@ $(document).ready(function() {
         var d=details[activeIdx], imgName=d.img_name||d.image_name||'';
         var ext = imgName.indexOf('.')>-1 ? '' : '.jpg';
         $('#imgModalImg').attr('src',imagePath+imgName+ext);
-        $('#imgModalInfo').text('Section '+(activeIdx+1)+' — '+d.pav_condition);
-        $('#imgModalPci').html(d.pci_rating.toFixed(1)+'%<small>PCI Score</small>');
+        $('#imgModalInfo').text(fmt('{{ _("Section %(number)s")|escapejs }}', {number: activeIdx+1})+' — '+trCondition(d.pav_condition));
+        $('#imgModalPci').html(d.pci_rating.toFixed(1)+'%<small>{{ _("PCI Score")|escapejs }}</small>');
         $('#imgModalPci').css('background',pciColor(d.pci_rating));
         $('#imgModal').addClass('show');
         $('body').css('overflow','hidden');
@@ -377,8 +377,8 @@ $(document).ready(function() {
             var d=details[next], imgName=d.img_name||d.image_name||'';
             var ext=imgName.indexOf('.')>-1?'':'.jpg';
             $('#imgModalImg').attr('src',imagePath+imgName+ext);
-            $('#imgModalInfo').text('Section '+(next+1)+' — '+d.pav_condition);
-            $('#imgModalPci').html(d.pci_rating.toFixed(1)+'%<small>PCI Score</small>');
+            $('#imgModalInfo').text(fmt('{{ _("Section %(number)s")|escapejs }}', {number: next+1})+' — '+trCondition(d.pav_condition));
+            $('#imgModalPci').html(d.pci_rating.toFixed(1)+'%<small>{{ _("PCI Score")|escapejs }}</small>');
             $('#imgModalPci').css('background',pciColor(d.pci_rating));
         }
     }

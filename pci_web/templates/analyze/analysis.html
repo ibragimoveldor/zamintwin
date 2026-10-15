@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n condition_labels %}
 
-{% block title %}{{ project.name }} | PCI Assessment{% endblock %}
+{% block title %}{{ project.name }} | {% translate "PCI Assessment" %}{% endblock %}
 
 {% block style %}
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -221,27 +221,27 @@
     <div class="top-stats mb-2">
         <div class="top-stat">
             <div class="top-stat-value mono" id="totalKm">—</div>
-            <div class="top-stat-label">Total Length</div>
+            <div class="top-stat-label">{% translate "Total Length" %}</div>
         </div>
         <div class="top-stat-divider"></div>
         <div class="top-stat">
             <div class="top-stat-value mono">{{ details|length }}</div>
-            <div class="top-stat-label">Tiles (10m)</div>
+            <div class="top-stat-label">{% translate "Tiles (10m)" %}</div>
         </div>
         <div class="top-stat-divider"></div>
         <div class="top-stat">
             <div class="top-stat-value mono" id="avgPci">—</div>
-            <div class="top-stat-label">Avg PCI</div>
+            <div class="top-stat-label">{% translate "Avg PCI" %}</div>
         </div>
         <div class="top-stat-divider"></div>
         <div style="flex:1; min-width:180px;">
-            <div class="top-stat-label mb-1">Overall Condition</div>
+            <div class="top-stat-label mb-1">{% translate "Overall Condition" %}</div>
             <div class="top-condition-bar" id="topCondBar"></div>
         </div>
         <div class="top-actions">
             <a href="{% url 'analysis:export_pdf' project.id %}" class="btn-csv" style="background:#dc2626;"><i class="fa fa-file-pdf"></i> PDF</a>
             <a href="{% url 'analysis:download' project.id %}" class="btn-csv"><i class="fa fa-download"></i> CSV</a>
-            <a href="{% url 'analysis:mapview' project.id %}" class="btn-map"><i class="fa fa-map"></i> Map</a>
+            <a href="{% url 'analysis:mapview' project.id %}" class="btn-map"><i class="fa fa-map"></i> {% translate "Map" %}</a>
         </div>
     </div>
 
@@ -249,12 +249,12 @@
     <div class="card-s mb-2">
         <div class="card-s-body py-2">
             <div class="d-flex align-items-center justify-content-between mb-1">
-                <div class="tile-strip-label" id="tileStripLabel">Road Section — {{ project.name }}</div>
+                <div class="tile-strip-label" id="tileStripLabel">{% translate "Road Section" %} — {{ project.name }}</div>
                 <div style="display:flex;gap:6px;align-items:center;font-size:0.65rem;color:var(--text-secondary);">
-                    <span style="width:10px;height:10px;background:var(--pci-good);border-radius:2px;display:inline-block;"></span>Good
-                    <span style="width:10px;height:10px;background:var(--pci-fair);border-radius:2px;display:inline-block;margin-left:4px;"></span>Fair
-                    <span style="width:10px;height:10px;background:var(--pci-poor);border-radius:2px;display:inline-block;margin-left:4px;"></span>Poor
-                    <span style="width:10px;height:10px;background:var(--pci-very-poor);border-radius:2px;display:inline-block;margin-left:4px;"></span>Severe
+                    <span style="width:10px;height:10px;background:var(--pci-good);border-radius:2px;display:inline-block;"></span>{% translate "Good" %}
+                    <span style="width:10px;height:10px;background:var(--pci-fair);border-radius:2px;display:inline-block;margin-left:4px;"></span>{% translate "Fair" %}
+                    <span style="width:10px;height:10px;background:var(--pci-poor);border-radius:2px;display:inline-block;margin-left:4px;"></span>{% translate "Poor" %}
+                    <span style="width:10px;height:10px;background:var(--pci-very-poor);border-radius:2px;display:inline-block;margin-left:4px;"></span>{% translate "Severe" %}
                 </div>
             </div>
             <div class="tile-strip-nav">
@@ -264,7 +264,7 @@
                     <div class="tile-strip" id="tileStrip">
                         {% for img_file, detail in fullist %}
                         <div class="tile-block" data-idx="{{ forloop.counter0 }}">
-                            <div class="tile-tip">Section {{ forloop.counter }} — PCI {{ detail.pci_rating|floatformat:0 }}% — {{ detail.pav_condition }}</div>
+                            <div class="tile-tip">{% blocktranslate with number=forloop.counter %}Section {{ number }}{% endblocktranslate %} — PCI {{ detail.pci_rating|floatformat:0 }}% — {{ detail.pav_condition|pavement_condition_label }}</div>
                         </div>
                         {% endfor %}
                     </div>
@@ -281,19 +281,19 @@
         <div class="col-lg-7 mb-2">
             <div class="card-s mb-2">
                 <div class="card-s-head">
-                    <span><i class="fa fa-exclamation-triangle" style="color:#ef4444;"></i> Damage Insights</span>
+                    <span><i class="fa fa-exclamation-triangle" style="color:#ef4444;"></i> {% translate "Damage Insights" %}</span>
                     <span class="mono" style="font-size:0.7rem;color:var(--text-secondary);" id="damagedCount"></span>
                 </div>
                 <div style="max-height:130px;overflow-y:auto;" id="insightsList"></div>
             </div>
             <div class="card-s mb-2">
                 <div class="card-s-head">
-                    <span><i class="fa fa-table"></i> Section Results</span>
-                    <span class="mono" style="font-size:0.75rem;color:var(--text-secondary);">{{ details|length }} tiles</span>
+                    <span><i class="fa fa-table"></i> {% translate "Section Results" %}</span>
+                    <span class="mono" style="font-size:0.75rem;color:var(--text-secondary);">{% blocktranslate count counter=details|length %}{{ counter }} tile{% plural %}{{ counter }} tiles{% endblocktranslate %}</span>
                 </div>
                 <div style="max-height:300px;overflow-y:auto;">
                     <table class="res-table">
-                        <thead><tr><th>#</th><th>Section</th><th>PCI</th><th>Condition</th><th>Defects</th></tr></thead>
+                        <thead><tr><th>#</th><th>{% translate "Section" %}</th><th>PCI</th><th>{% translate "Condition" %}</th><th>{% translate "Defects" %}</th></tr></thead>
                         <tbody id="resBody">
                             {% for img_file, detail in fullist %}
                             <tr data-idx="{{ forloop.counter0 }}">
@@ -303,7 +303,7 @@
                                     <span class="mono" style="font-weight:600;">{{ detail.pci_rating|floatformat:0 }}</span>
                                     <div class="pci-bar"><div class="pci-bar-fill" style="width:{{ detail.pci_rating }}%;background:{% if detail.pci_rating > 85 %}var(--pci-good){% elif detail.pci_rating > 70 %}var(--pci-satisfactory){% elif detail.pci_rating > 55 %}var(--pci-fair){% elif detail.pci_rating > 40 %}var(--pci-poor){% else %}var(--pci-very-poor){% endif %};"></div></div>
                                 </td>
-                                <td><span class="cond-badge cond-{{ detail.pav_condition|lower|cut:' ' }}">{{ detail.pav_condition }}</span></td>
+                                <td><span class="cond-badge cond-{{ detail.pav_condition|lower|cut:' ' }}">{{ detail.pav_condition|pavement_condition_label }}</span></td>
                                 <td class="mono" style="font-size:0.75rem;">
                                     {% if detail.crack_len > 0 %}L:{{ detail.crack_len|floatformat:1 }}m{% endif %}
                                     {% if detail.alr_area > 0 %} A:{{ detail.alr_area|floatformat:1 }}{% endif %}
@@ -320,7 +320,7 @@
             <div class="row">
                 <div class="col-md-6 mb-2">
                     <div class="card-s">
-                        <div class="card-s-head"><span><i class="fa fa-chart-pie"></i> Condition Distribution</span></div>
+                        <div class="card-s-head"><span><i class="fa fa-chart-pie"></i> {% translate "Condition Distribution" %}</span></div>
                         <div class="card-s-body">
                             <div class="chart-box"><canvas id="condChart"></canvas></div>
                             <div id="condLegend" class="mt-1"></div>
@@ -329,7 +329,7 @@
                 </div>
                 <div class="col-md-6 mb-2">
                     <div class="card-s">
-                        <div class="card-s-head"><span><i class="fa fa-chart-bar"></i> Defect Types</span></div>
+                        <div class="card-s-head"><span><i class="fa fa-chart-bar"></i> {% translate "Defect Types" %}</span></div>
                         <div class="card-s-body"><div class="chart-box"><canvas id="crackChart"></canvas></div></div>
                     </div>
                 </div>
@@ -340,8 +340,8 @@
         <div class="col-lg-5 mb-2">
             <div class="card-s mb-2">
                 <div class="card-s-head">
-                    <span><i class="fa fa-map-marked-alt"></i> Assessment Map</span>
-                    <small class="text-muted" style="font-size:0.75rem;">Click markers for details</small>
+                    <span><i class="fa fa-map-marked-alt"></i> {% translate "Assessment Map" %}</span>
+                    <small class="text-muted" style="font-size:0.75rem;">{% translate "Click markers for details" %}</small>
                 </div>
                 <div class="card-s-body p-1">
                     <div id="roadMap"></div>
@@ -349,24 +349,24 @@
             </div>
             <div class="card-s" id="detailPanel">
                 <div class="card-s-head">
-                    <span><i class="fa fa-search-plus"></i> Tile Detail</span>
-                    <span class="mono" style="font-size:0.75rem;" id="detailTitle">Select a tile</span>
+                    <span><i class="fa fa-search-plus"></i> {% translate "Tile Detail" %}</span>
+                    <span class="mono" style="font-size:0.75rem;" id="detailTitle">{% translate "Select a tile" %}</span>
                 </div>
                 <div class="card-s-body">
                     <div class="detail-img-box mb-2" id="detailImgResult" title="Click to view fullscreen">
                         <div class="text-center py-4" style="color:rgba(255,255,255,0.4);">
                             <i class="fa fa-hand-pointer" style="font-size:1.5rem;"></i>
-                            <p class="mt-1 mb-0" style="font-size:0.8rem;">Click a tile to inspect</p>
+                            <p class="mt-1 mb-0" style="font-size:0.8rem;">{% translate "Click a tile to inspect" %}</p>
                         </div>
-                        <div class="zoom-hint"><i class="fa fa-expand"></i> Click to zoom</div>
+                        <div class="zoom-hint"><i class="fa fa-expand"></i> {% translate "Click to zoom" %}</div>
                     </div>
                     <table class="detail-tbl w-100" id="detailTbl" style="display:none;">
-                        <tr><th><i class="fa fa-heartbeat text-info"></i> Condition</th><td id="dtCond">—</td></tr>
+                        <tr><th><i class="fa fa-heartbeat text-info"></i> {% translate "Condition" %}</th><td id="dtCond">—</td></tr>
                         <tr><th><i class="fa fa-percentage text-primary"></i> PCI</th><td id="dtPci" class="mono">—</td></tr>
-                        <tr><th><i class="fa fa-ruler text-warning"></i> Crack Length</th><td id="dtCrack" class="mono">—</td></tr>
-                        <tr><th><i class="fa fa-th text-danger"></i> Alligator</th><td id="dtAlr" class="mono">—</td></tr>
-                        <tr><th><i class="fa fa-band-aid text-success"></i> Patching</th><td id="dtPatch" class="mono">—</td></tr>
-                        <tr><th><i class="fa fa-circle text-dark"></i> Pothole</th><td id="dtPot" class="mono">—</td></tr>
+                        <tr><th><i class="fa fa-ruler text-warning"></i> {% translate "Crack Length" %}</th><td id="dtCrack" class="mono">—</td></tr>
+                        <tr><th><i class="fa fa-th text-danger"></i> {% translate "Alligator" %}</th><td id="dtAlr" class="mono">—</td></tr>
+                        <tr><th><i class="fa fa-band-aid text-success"></i> {% translate "Patching" %}</th><td id="dtPatch" class="mono">—</td></tr>
+                        <tr><th><i class="fa fa-circle text-dark"></i> {% translate "Pothole" %}</th><td id="dtPot" class="mono">—</td></tr>
                         <tr><th><i class="fa fa-map-pin text-info"></i> GPS</th><td id="dtGps" class="mono" style="font-size:0.75rem;">—</td></tr>
                     </table>
                 </div>
@@ -434,7 +434,7 @@ $(document).ready(function() {
     var condColors={'Good':'#22c55e','Satisfactory':'#84cc16','Not Damaged':'#a3e635','Fair':'#eab308','Poor':'#f97316','Very Poor':'#ef4444','Serious':'#dc2626','Failed':'#991b1b'};
     details.forEach(function(d) { condCounts[d.pav_condition]=(condCounts[d.pav_condition]||0)+1; });
     var barH='';
-    condOrder.forEach(function(c) { if(condCounts[c]) { barH+='<div style="width:'+(condCounts[c]/details.length*100)+'%;background:'+condColors[c]+'" title="'+c+': '+condCounts[c]+'"></div>'; }});
+    condOrder.forEach(function(c) { if(condCounts[c]) { barH+='<div style="width:'+(condCounts[c]/details.length*100)+'%;background:'+condColors[c]+'" title="'+trCondition(c)+': '+condCounts[c]+'"></div>'; }});
     $('#topCondBar').html(barH);
 
     // ===== TILE STRIP =====
@@ -449,7 +449,7 @@ $(document).ready(function() {
     for (var m = 0; m <= details.length * 10; m += markerStep) {
         var tileIdx = m / 10;
         var px = tileIdx * TILE_PX;
-        var label = m >= 1000 ? (m/1000).toFixed(m%1000===0?0:1)+'km' : m+'m';
+        var label = m >= 1000 ? (m/1000).toFixed(m%1000===0?0:1)+' {{ _("km")|escapejs }}' : m+' {{ _("m")|escapejs }}';
         kmH += '<span class="km-mark" style="left:'+px+'px;">'+label+'</span>';
     }
     $('#kmMarkers').html(kmH);
@@ -473,9 +473,9 @@ $(document).ready(function() {
         .filter(function(x){return x.d.pav_condition!=='Not Damaged'&&x.d.pav_condition!=='Good'&&x.d.pav_condition!=='Satisfactory';})
         .sort(function(a,b){return a.d.pci_rating-b.d.pci_rating;});
     var insH='';
-    if(!sorted.length) insH='<div class="p-3 text-center text-muted" style="font-size:0.85rem;"><i class="fa fa-check-circle text-success"></i> No severe damage detected</div>';
+    if(!sorted.length) insH='<div class="p-3 text-center text-muted" style="font-size:0.85rem;"><i class="fa fa-check-circle text-success"></i> {{ _("No severe damage detected")|escapejs }}</div>';
     else sorted.slice(0,8).forEach(function(x){
-        insH+='<div class="insight-item" data-idx="'+x.i+'"><div class="insight-dot" style="background:'+pciColor(x.d.pci_rating)+'"></div><div class="insight-name">Section '+(x.i+1)+'</div><span class="cond-badge '+condClass(x.d.pav_condition)+'">'+x.d.pav_condition+'</span><div class="insight-val mono">'+x.d.pci_rating.toFixed(0)+'%</div></div>';
+        insH+='<div class="insight-item" data-idx="'+x.i+'"><div class="insight-dot" style="background:'+pciColor(x.d.pci_rating)+'"></div><div class="insight-name">'+fmt('{{ _("Section %(number)s")|escapejs }}', {number: x.i+1})+'</div><span class="cond-badge '+condClass(x.d.pav_condition)+'">'+trCondition(x.d.pav_condition)+'</span><div class="insight-val mono">'+x.d.pci_rating.toFixed(0)+'%</div></div>';
     });
     $('#insightsList').html(insH);
     $('#insightsList').on('click','.insight-item',function(){selectSection(parseInt($(this).data('idx')));});
@@ -489,7 +489,7 @@ $(document).ready(function() {
         if(gps){
             bounds.push([gps.lat,gps.lng]); polyPts.push([gps.lat,gps.lng]);
             var m=L.circleMarker([gps.lat,gps.lng],{radius:7,fillColor:pciColor(d.pci_rating),color:'#fff',weight:2,fillOpacity:0.9}).addTo(map);
-            m.bindTooltip('<b>PCI: '+d.pci_rating.toFixed(0)+'%</b><br>'+d.pav_condition,{direction:'top',offset:[0,-8]});
+            m.bindTooltip('<b>PCI: '+d.pci_rating.toFixed(0)+'%</b><br>'+trCondition(d.pav_condition),{direction:'top',offset:[0,-8]});
             m.on('click',function(){selectSection(idx);});
             markers.push({m:m,idx:idx});
         }
@@ -502,13 +502,13 @@ $(document).ready(function() {
     var cL=[],cD=[],cC=[];
     condOrder.forEach(function(c){if(condCounts[c]){cL.push(c);cD.push(condCounts[c]);cC.push(condColors[c]);}});
     if(cL.length){
-        new Chart(document.getElementById('condChart'),{type:'doughnut',data:{labels:cL,datasets:[{data:cD,backgroundColor:cC,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false}}}});
-        var lH='';cL.forEach(function(l,i){lH+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><div style="width:10px;height:10px;border-radius:2px;background:'+cC[i]+';flex-shrink:0;"></div><span style="font-size:0.78rem;flex:1;">'+l+'</span><span class="mono" style="font-size:0.78rem;font-weight:600;">'+cD[i]+'</span></div>';});
+        new Chart(document.getElementById('condChart'),{type:'doughnut',data:{labels:cL.map(trCondition),datasets:[{data:cD,backgroundColor:cC,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false}}}});
+        var lH='';cL.forEach(function(l,i){lH+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;"><div style="width:10px;height:10px;border-radius:2px;background:'+cC[i]+';flex-shrink:0;"></div><span style="font-size:0.78rem;flex:1;">'+trCondition(l)+'</span><span class="mono" style="font-size:0.78rem;font-weight:600;">'+cD[i]+'</span></div>';});
         $('#condLegend').html(lH);
     }
     var ct=[0,0,0,0];
     details.forEach(function(d){if(d.crack_len>0)ct[0]++;if(d.alr_area>0)ct[1]++;if(d.patching_area>0)ct[2]++;if(d.pothole_area>0)ct[3]++;});
-    new Chart(document.getElementById('crackChart'),{type:'bar',data:{labels:['Cracks','Alligator','Patching','Pothole'],datasets:[{data:ct,backgroundColor:['#ef4444','#3b82f6','#eab308','#8b5cf6'],borderRadius:4,barPercentage:0.6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{stepSize:1}},y:{grid:{display:false}}}}});
+    new Chart(document.getElementById('crackChart'),{type:'bar',data:{labels:['{{ _("Cracks")|escapejs }}','{{ _("Alligator")|escapejs }}','{{ _("Patching")|escapejs }}','{{ _("Pothole")|escapejs }}'],datasets:[{data:ct,backgroundColor:['#ef4444','#3b82f6','#eab308','#8b5cf6'],borderRadius:4,barPercentage:0.6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{stepSize:1}},y:{grid:{display:false}}}}});
 
     // ===== SECTION SELECTION =====
     var activeIdx = -1;
@@ -516,15 +516,15 @@ $(document).ready(function() {
         if(idx<0||idx>=details.length) return;
         activeIdx = idx;
         var d=details[idx], img=images[idx]||'';
-        $('#detailImgResult').html('<img src="'+imagePath+img+'" alt="Result"><div class="zoom-hint"><i class="fa fa-expand"></i> Click to zoom</div>');
+        $('#detailImgResult').html('<img src="'+imagePath+img+'" alt="Result"><div class="zoom-hint"><i class="fa fa-expand"></i> {{ _("Click to zoom")|escapejs }}</div>');
         $('#detailTbl').show();
-        $('#detailTitle').text('Tile '+(idx+1)+' / '+details.length);
-        $('#dtCond').html('<span class="cond-badge '+condClass(d.pav_condition)+'">'+d.pav_condition+'</span>');
+        $('#detailTitle').text(fmt('{{ _("Tile %(number)s / %(total)s")|escapejs }}', {number: idx+1, total: details.length}));
+        $('#dtCond').html('<span class="cond-badge '+condClass(d.pav_condition)+'">'+trCondition(d.pav_condition)+'</span>');
         $('#dtPci').text(d.pci_rating.toFixed(1)+'%');
-        $('#dtCrack').text(d.crack_len>0?d.crack_len.toFixed(2)+' m':'None');
-        $('#dtAlr').text(d.alr_area>0?d.alr_area.toFixed(2)+' m²':'None');
-        $('#dtPatch').text(d.patching_area>0?d.patching_area.toFixed(2)+' m²':'None');
-        $('#dtPot').text(d.pothole_area>0?d.pothole_area.toFixed(2)+' m²':'None');
+        $('#dtCrack').text(d.crack_len>0?d.crack_len.toFixed(2)+' {{ _("m")|escapejs }}':'{{ _("None")|escapejs }}');
+        $('#dtAlr').text(d.alr_area>0?d.alr_area.toFixed(2)+' {{ _("m²")|escapejs }}':'{{ _("None")|escapejs }}');
+        $('#dtPatch').text(d.patching_area>0?d.patching_area.toFixed(2)+' {{ _("m²")|escapejs }}':'{{ _("None")|escapejs }}');
+        $('#dtPot').text(d.pothole_area>0?d.pothole_area.toFixed(2)+' {{ _("m²")|escapejs }}':'{{ _("None")|escapejs }}');
         var gps=parseGPS(d.img_name);
         $('#dtGps').text(gps?gps.lat.toFixed(6)+', '+gps.lng.toFixed(6):'N/A');
         markers.forEach(function(mk){mk.m.setStyle({weight:mk.idx===idx?3:2,radius:mk.idx===idx?11:7});if(mk.idx===idx)mk.m.openTooltip();});
@@ -550,8 +550,8 @@ $(document).ready(function() {
     function updateModalContent(idx) {
         var img=images[idx]||'', d=details[idx];
         $('#imgModalImg').attr('src', imagePath+img);
-        $('#imgModalInfo').text('Section '+(idx+1)+' of '+details.length+' — '+d.pav_condition);
-        $('#imgModalPci').html(d.pci_rating.toFixed(1)+'%<small>PCI Score</small>');
+        $('#imgModalInfo').text(fmt('{{ _("Section %(number)s of %(total)s")|escapejs }}', {number: idx+1, total: details.length})+' — '+trCondition(d.pav_condition));
+        $('#imgModalPci').html(d.pci_rating.toFixed(1)+'%<small>{{ _("PCI Score")|escapejs }}</small>');
         $('#imgModalPci').css('background', pciColor(d.pci_rating));
     }
     function openFullscreen(idx) {

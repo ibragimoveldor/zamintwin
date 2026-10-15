@@ -1,0 +1,20 @@
+{% load i18n %}
+<form action="{% url 'set_language' %}" method="post" class="lang-switcher">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <i class="fa fa-globe" aria-hidden="true"></i>
+    <select name="language" aria-label="{% translate 'Language' %}" onchange="this.form.submit()">
+        {% get_available_languages as available_languages %}
+        {% get_language_info_list for available_languages as languages %}
+        {% for language in languages %}
+        <option value="{{ language.code }}"{% if language.code == LANGUAGE_CODE %} selected{% endif %}>{{ language.name_local|capfirst }}</option>
+        {% endfor %}
+    </select>
+</form>
+<style>
+    .lang-switcher { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: inherit; font-size: 0.8rem; }
+    .lang-switcher i { opacity: 0.7; }
+    .lang-switcher select { background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 6px; padding: 4px 6px; font: inherit; cursor: pointer; opacity: 0.85; }
+    .lang-switcher select:hover { opacity: 1; }
+    .lang-switcher option { color: #0f172a; background: #fff; }
+</style>

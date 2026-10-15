@@ -5,6 +5,8 @@ import json
 import os
 from collections import defaultdict
 
+from django.utils.formats import date_format
+from django.utils.translation import gettext as _, gettext_lazy
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -21,40 +23,40 @@ from .ingest import ingest_session, IngestError
 # Defect type display names
 # ============================================================================
 DEFECT_DISPLAY_NAMES = {
-    "D00": "Longitudinal Crack",
-    "D10": "Transverse Crack",
-    "D20": "Alligator Crack",
-    "D40": "Pothole",
-    "D50": "Pothole",
-    "d00": "Longitudinal Crack",
-    "d10": "Transverse Crack",
-    "d20": "Alligator Crack",
-    "d40": "Pothole",
-    "d50": "Pothole",
-    "pothole": "Pothole",
-    "Pothole": "Pothole",
-    "alligator_crack": "Alligator Crack",
-    "Alligator Crack": "Alligator Crack",
-    "longitudinal_crack": "Longitudinal Crack",
-    "Longitudinal Crack": "Longitudinal Crack",
-    "transverse_crack": "Transverse Crack",
-    "Transverse Crack": "Transverse Crack",
-    "Other Damage": "Other Damage",
-    "patch": "Patch/Repair",
-    "rutting": "Rutting",
-    "bleeding": "Bleeding",
+    "D00": gettext_lazy("Longitudinal Crack"),
+    "D10": gettext_lazy("Transverse Crack"),
+    "D20": gettext_lazy("Alligator Crack"),
+    "D40": gettext_lazy("Pothole"),
+    "D50": gettext_lazy("Pothole"),
+    "d00": gettext_lazy("Longitudinal Crack"),
+    "d10": gettext_lazy("Transverse Crack"),
+    "d20": gettext_lazy("Alligator Crack"),
+    "d40": gettext_lazy("Pothole"),
+    "d50": gettext_lazy("Pothole"),
+    "pothole": gettext_lazy("Pothole"),
+    "Pothole": gettext_lazy("Pothole"),
+    "alligator_crack": gettext_lazy("Alligator Crack"),
+    "Alligator Crack": gettext_lazy("Alligator Crack"),
+    "longitudinal_crack": gettext_lazy("Longitudinal Crack"),
+    "Longitudinal Crack": gettext_lazy("Longitudinal Crack"),
+    "transverse_crack": gettext_lazy("Transverse Crack"),
+    "Transverse Crack": gettext_lazy("Transverse Crack"),
+    "Other Damage": gettext_lazy("Other Damage"),
+    "patch": gettext_lazy("Patch/Repair"),
+    "rutting": gettext_lazy("Rutting"),
+    "bleeding": gettext_lazy("Bleeding"),
 }
 
 
 def get_defect_display_name(raw_type):
     """Convert raw defect type code to human-readable name."""
     raw = (raw_type or "").strip()
-    return (
+    known = (
         DEFECT_DISPLAY_NAMES.get(raw)
         or DEFECT_DISPLAY_NAMES.get(raw.lower())
         or DEFECT_DISPLAY_NAMES.get(raw.upper())
-        or raw.replace("_", " ").title()
     )
+    return str(known) if known else raw.replace("_", " ").title()
 
 
 # ============================================================================
@@ -423,7 +425,7 @@ def session_detail(request, session_id):
                 {
                     "id": s.pk,
                     "session_id": s.session_id,
-                    "date": s.start_time.strftime("%b %Y") if s.start_time else "—",
+                    "date": date_format(s.start_time, "M Y") if s.start_time else "—",
                     "date_full": s.start_time.strftime("%Y-%m-%d") if s.start_time else "",
                     "pci": float(s.avg_pci) if s.avg_pci is not None else None,
                     "condition": s.condition_rating or "",
@@ -440,7 +442,7 @@ def session_detail(request, session_id):
                 segs = RoadSegment.objects.filter(session=s).order_by("segment_index")
                 history_lines.append({
                     "id": s.pk,
-                    "date": s.start_time.strftime("%b %Y") if s.start_time else "—",
+                    "date": date_format(s.start_time, "M Y") if s.start_time else "—",
                     "is_current": s.pk == session.pk,
                     "avg_pci": float(s.avg_pci) if s.avg_pci is not None else None,
                     "points": [
@@ -507,7 +509,7 @@ def session_upload(request):
     """Upload one or more session zips and process them."""
     zip_files = request.FILES.getlist("session_zip")
     if not zip_files:
-        messages.error(request, "No file uploaded.")
+        messages.error(request, _("No file uploaded."))
         return redirect("sessions:network_map")
 
     uploaded_ids = []
@@ -515,7 +517,10 @@ def session_upload(request):
 
     for zip_file in zip_files:
         if not zip_file.name.lower().endswith(".zip"):
-            messages.error(request, f"'{zip_file.name}' is not a .zip archive — skipped.")
+            messages.error(
+                request,
+                _("‘%(name)s’ is not a .zip archive — skipped.") % {"name": zip_file.name},
+            )
             error_count += 1
             continue
 
@@ -523,14 +528,22 @@ def session_upload(request):
             session = ingest_session(request.user, zip_file)
             messages.success(
                 request,
-                f"Session '{session.session_id}' processed: "
-                f"{session.total_defects} defects, "
-                f"{session.total_segments} segments, "
-                f"PCI {session.avg_pci}"
+                _(
+                    "Session ‘%(session)s’ processed: %(defects)s defects, "
+                    "%(segments)s segments, PCI %(pci)s"
+                ) % {
+                    "session": session.session_id,
+                    "defects": session.total_defects,
+                    "segments": session.total_segments,
+                    "pci": session.avg_pci,
+                }
             )
             uploaded_ids.append(str(session.pk))
         except IngestError as e:
-            messages.error(request, f"Upload failed for '{zip_file.name}': {e}")
+            messages.error(
+                request,
+                _("Upload failed for ‘%(name)s’: %(error)s") % {"name": zip_file.name, "error": e},
+            )
             error_count += 1
 
     # Always redirect to network map with uploaded session IDs for highlighting
@@ -553,7 +566,7 @@ def session_delete(request, session_id):
         shutil.rmtree(session.data_dir, ignore_errors=True)
 
     session.delete()
-    messages.success(request, f"Session '{sid}' deleted.")
+    messages.success(request, _("Session ‘%(session)s’ deleted.") % {"session": sid})
     return redirect("sessions:network_map")
 
 
@@ -574,7 +587,7 @@ def session_rename(request, session_id):
                 user=request.user, road_name=old_name,
             ).update(road_name=new_name)
         return JsonResponse({"road_name": session.road_name, "display_name": session.display_name})
-    return JsonResponse({"error": "Name cannot be empty"}, status=400)
+    return JsonResponse({"error": _("Name cannot be empty")}, status=400)
 
 
 @login_required
@@ -591,7 +604,7 @@ def detection_verify(request, detection_id):
     elif status_str == "rejected":
         detection.verification_status = Detection.VerificationStatus.REJECTED
     else:
-        return JsonResponse({"error": "Invalid status"}, status=400)
+        return JsonResponse({"error": _("Invalid status")}, status=400)
 
     detection.verified_by = request.user
     detection.verified_at = timezone.now()

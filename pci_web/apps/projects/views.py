@@ -2,6 +2,7 @@ import os
 import shutil
 import logging
 
+from django.utils.translation import gettext as _, ngettext
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
@@ -27,10 +28,10 @@ def index(request):
             project = form.save(commit=False)
             project.user = request.user
             project.save()
-            msg = {"type": "success", "msg": "Project created successfully!"}
+            msg = {"type": "success", "msg": _("Project created successfully!")}
             form = ProjectCreateForm()
         else:
-            msg = {"type": "warning", "msg": "Project creation failed. Please try again."}
+            msg = {"type": "warning", "msg": _("Project creation failed. Please try again.")}
     else:
         form = ProjectCreateForm()
 
@@ -63,9 +64,13 @@ def upload(request, project_id):
         if success_count > 0:
             project.status = Project.Status.UPLOADED
             project.save()
-            msg = {"type": "success", "msg": f"{success_count} images uploaded successfully!"}
+            msg = {"type": "success", "msg": ngettext(
+                "%(count)d image uploaded successfully!",
+                "%(count)d images uploaded successfully!",
+                success_count,
+            ) % {"count": success_count}}
         else:
-            msg = {"type": "warning", "msg": "No images were uploaded."}
+            msg = {"type": "warning", "msg": _("No images were uploaded.")}
 
     context = {
         "file_form": ImageUploadForm(),

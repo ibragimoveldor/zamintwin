@@ -3,6 +3,7 @@ Models for front-camera session-based road inspection.
 Each session = one drive, containing GPS track, detections, and video.
 """
 import os
+from django.utils.translation import gettext_lazy as _
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -12,10 +13,10 @@ class Session(models.Model):
     """One inspection drive — historical snapshot for temporal comparison."""
 
     class Status(models.IntegerChoices):
-        UPLOADING = 0, "Uploading"
-        PROCESSING = 1, "Processing"
-        READY = 2, "Ready"
-        ERROR = 3, "Error"
+        UPLOADING = 0, _("Uploading")
+        PROCESSING = 1, _("Processing")
+        READY = 2, _("Ready")
+        ERROR = 3, _("Error")
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sessions")
     session_id = models.CharField(max_length=64, unique=True, db_index=True)
@@ -149,9 +150,9 @@ class Detection(models.Model):
     """Individual defect detection with human verification."""
 
     class VerificationStatus(models.IntegerChoices):
-        PENDING = 0, "Pending"
-        VERIFIED = 1, "Verified"
-        REJECTED = 2, "Rejected"
+        PENDING = 0, _("Pending")
+        VERIFIED = 1, _("Verified")
+        REJECTED = 2, _("Rejected")
 
     session = models.ForeignKey(Session, on_delete=models.CASCADE, related_name="detections")
     segment = models.ForeignKey(
@@ -206,26 +207,26 @@ class Detection(models.Model):
 
     @property
     def verification_status_name(self):
-        return self.VerificationStatus(self.verification_status).label.lower()
+        return self.VerificationStatus(self.verification_status).name.lower()
 
     DEFECT_DISPLAY_NAMES = {
-        "D00": "Longitudinal crack",
-        "D10": "Transverse crack",
-        "D20": "Alligator crack",
-        "D40": "Pothole",
-        "D50": "Pothole",
-        "d00": "Longitudinal crack",
-        "d10": "Transverse crack",
-        "d20": "Alligator crack",
-        "d40": "Pothole",
-        "d50": "Pothole",
-        "pothole": "Pothole",
-        "alligator_crack": "Alligator crack",
-        "longitudinal_crack": "Longitudinal crack",
-        "transverse_crack": "Transverse crack",
-        "patch": "Patch/repair",
-        "rutting": "Rutting",
-        "bleeding": "Bleeding",
+        "D00": _("Longitudinal crack"),
+        "D10": _("Transverse crack"),
+        "D20": _("Alligator crack"),
+        "D40": _("Pothole"),
+        "D50": _("Pothole"),
+        "d00": _("Longitudinal crack"),
+        "d10": _("Transverse crack"),
+        "d20": _("Alligator crack"),
+        "d40": _("Pothole"),
+        "d50": _("Pothole"),
+        "pothole": _("Pothole"),
+        "alligator_crack": _("Alligator crack"),
+        "longitudinal_crack": _("Longitudinal crack"),
+        "transverse_crack": _("Transverse crack"),
+        "patch": _("Patch/repair"),
+        "rutting": _("Rutting"),
+        "bleeding": _("Bleeding"),
     }
 
     @property
