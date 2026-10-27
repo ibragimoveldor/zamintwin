@@ -11,6 +11,7 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+from django.utils.translation import gettext as _
 from django.conf import settings
 
 from .models import Session, Detection, RoadSegment, SessionFile
@@ -211,7 +212,7 @@ def ingest_session(user, zip_file):
         try:
             zf = zipfile.ZipFile(io.BytesIO(zip_file.read()))
         except zipfile.BadZipFile:
-            raise IngestError("Invalid zip file")
+            raise IngestError(_("Invalid zip file"))
 
         file_map = {}
         video_name = None
@@ -228,7 +229,7 @@ def ingest_session(user, zip_file):
 
         missing = REQUIRED_FILES - set(file_map.keys())
         if missing:
-            raise IngestError(f"Missing required files: {', '.join(missing)}")
+            raise IngestError(_("Missing required files: %(files)s") % {"files": ", ".join(missing)})
 
         files = {key: zf.read(path) for key, path in file_map.items()}
         if video_name:
@@ -240,7 +241,7 @@ def ingest_session(user, zip_file):
         sid = metadata["session_id"]
 
         if Session.objects.filter(session_id=sid).exists():
-            raise IngestError(f"Session '{sid}' already exists")
+            raise IngestError(_("Session ‘%(session)s’ already exists") % {"session": sid})
 
         # --- Step 3: Create session ---
         session = Session.objects.create(
@@ -480,7 +481,7 @@ def ingest_session(user, zip_file):
             session.status = Session.Status.ERROR
             session.processing_error = str(e)[:500]
             session.save()
-        raise IngestError(f"Ingest failed: {e}") from e
+        raise IngestError(_("Ingest failed: %(error)s") % {"error": e}) from e
 
 
 def _deduplicate(det_objects):

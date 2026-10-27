@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n condition_labels %}
 
-{% block title %}Session {{ session.session_id }}{% endblock %}
+{% block title %}{% blocktranslate with session=session.session_id %}Session {{ session }}{% endblocktranslate %}{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'sessions:network_map' %}">Road Inspection</a></li>
+<li class="breadcrumb-item"><a href="{% url 'sessions:network_map' %}">{% translate "Road Inspection" %}</a></li>
 <li class="breadcrumb-item active">{{ session.session_id }}</li>
 {% endblock %}
 
@@ -208,24 +208,24 @@
         <!-- Road name header + date + actions -->
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
             <h5 id="roadNameDisplay" style="margin:0;font-size:1rem;font-weight:700;color:var(--text);cursor:pointer;flex:1;"
-                title="Click to rename" onclick="document.getElementById('renameInput').style.display='flex';this.style.display='none';">
+                title="{% translate 'Click to rename' %}" onclick="document.getElementById('renameInput').style.display='flex';this.style.display='none';">
                 {{ session.display_name }}
                 <i class="fa fa-pen" style="font-size:0.6rem;color:#94a3b8;margin-left:6px;"></i>
             </h5>
             <div id="renameInput" style="display:none;flex:1;gap:6px;align-items:center;">
-                <input type="text" id="roadNameInput" value="{{ session.road_name }}" placeholder="Enter road name..."
+                <input type="text" id="roadNameInput" value="{{ session.road_name }}" placeholder="{% translate 'Enter road name...' %}"
                        style="flex:1;padding:4px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:0.85rem;font-family:inherit;">
-                <button onclick="saveRoadName()" style="padding:4px 10px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-size:0.75rem;cursor:pointer;">Save</button>
+                <button onclick="saveRoadName()" style="padding:4px 10px;background:#3b82f6;color:#fff;border:none;border-radius:6px;font-size:0.75rem;cursor:pointer;">{% translate "Save" %}</button>
                 <button onclick="document.getElementById('renameInput').style.display='none';document.getElementById('roadNameDisplay').style.display='block';"
-                        style="padding:4px 8px;background:none;border:1px solid #e2e8f0;border-radius:6px;font-size:0.75rem;cursor:pointer;color:#64748b;">Cancel</button>
+                        style="padding:4px 8px;background:none;border:1px solid #e2e8f0;border-radius:6px;font-size:0.75rem;cursor:pointer;color:#64748b;">{% translate "Cancel" %}</button>
             </div>
             <span style="font-size:0.68rem;color:#94a3b8;white-space:nowrap;">{{ session.start_time|date:"M d, Y" }}</span>
-            <a href="{% url 'sessions:pdf_report' session.pk %}" style="color:#3b82f6;font-size:0.75rem;font-weight:600;text-decoration:none;white-space:nowrap;" title="Download PDF Report">
-                <i class="fa fa-file-pdf"></i> PDF Report
+            <a href="{% url 'sessions:pdf_report' session.pk %}" style="color:#3b82f6;font-size:0.75rem;font-weight:600;text-decoration:none;white-space:nowrap;" title="{% translate 'Download PDF Report' %}">
+                <i class="fa fa-file-pdf"></i> {% translate "PDF Report" %}
             </a>
-            <form method="post" action="{% url 'sessions:delete' session.pk %}" style="display:inline;" onsubmit="return confirm('Delete this session?');">
+            <form method="post" action="{% url 'sessions:delete' session.pk %}" style="display:inline;" onsubmit="return confirm('{{ _("Delete this session?")|escapejs }}');">
                 {% csrf_token %}
-                <button type="submit" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.75rem;white-space:nowrap;" title="Delete session">
+                <button type="submit" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:0.75rem;white-space:nowrap;" title="{% translate 'Delete session' %}">
                     <i class="fa fa-trash"></i>
                 </button>
             </form>
@@ -234,21 +234,21 @@
         <!-- Stats -->
         <div class="stats-bar">
             <div class="mini-stat">
-                <div class="label">Distance</div>
-                <div class="value">{{ session.distance_km|floatformat:1 }} km</div>
+                <div class="label">{% translate "Distance" %}</div>
+                <div class="value">{{ session.distance_km|floatformat:1 }} {% translate "km" %}</div>
             </div>
             <div class="mini-stat">
-                <div class="label">Avg PCI</div>
+                <div class="label">{% translate "Avg PCI" %}</div>
                 <div class="value" style="color: {% if session.avg_pci >= 85 %}#16a34a{% elif session.avg_pci >= 70 %}#84cc16{% elif session.avg_pci >= 55 %}#ca8a04{% else %}#ef4444{% endif %}">
                     {{ session.avg_pci|floatformat:1 }}
                 </div>
             </div>
             <div class="mini-stat">
-                <div class="label">Defects</div>
+                <div class="label">{% translate "Defects" %}</div>
                 <div class="value" style="color: #f97316;">{{ session.total_defects }}</div>
             </div>
             <div class="mini-stat">
-                <div class="label">Verified</div>
+                <div class="label">{% translate "Verified" %}</div>
                 <div class="value">{{ session.total_defects_verified }}/{{ session.total_defects }}</div>
             </div>
         </div>
@@ -256,20 +256,20 @@
         <!-- Map -->
         <div id="map" style="position:relative;">
             <div style="position:absolute;bottom:10px;left:10px;z-index:1000;background:rgba(15,23,42,0.9);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:6px 12px;display:flex;gap:10px;align-items:center;">
-                <div style="display:flex;align-items:center;gap:4px;"><div style="width:16px;height:3px;border-radius:2px;background:#22c55e;"></div><span style="font-size:0.65rem;color:rgba(255,255,255,0.6);">Good</span></div>
-                <div style="display:flex;align-items:center;gap:4px;"><div style="width:16px;height:3px;border-radius:2px;background:#eab308;"></div><span style="font-size:0.65rem;color:rgba(255,255,255,0.6);">Fair</span></div>
-                <div style="display:flex;align-items:center;gap:4px;"><div style="width:16px;height:3px;border-radius:2px;background:#ef4444;"></div><span style="font-size:0.65rem;color:rgba(255,255,255,0.6);">Poor</span></div>
-                <div style="display:flex;align-items:center;gap:4px;"><div style="width:16px;height:3px;border-radius:2px;background:#7f1d1d;"></div><span style="font-size:0.65rem;color:rgba(255,255,255,0.6);">Failed</span></div>
+                <div style="display:flex;align-items:center;gap:4px;"><div style="width:16px;height:3px;border-radius:2px;background:#22c55e;"></div><span style="font-size:0.65rem;color:rgba(255,255,255,0.6);">{% translate "Good" %}</span></div>
+                <div style="display:flex;align-items:center;gap:4px;"><div style="width:16px;height:3px;border-radius:2px;background:#eab308;"></div><span style="font-size:0.65rem;color:rgba(255,255,255,0.6);">{% translate "Fair" %}</span></div>
+                <div style="display:flex;align-items:center;gap:4px;"><div style="width:16px;height:3px;border-radius:2px;background:#ef4444;"></div><span style="font-size:0.65rem;color:rgba(255,255,255,0.6);">{% translate "Poor" %}</span></div>
+                <div style="display:flex;align-items:center;gap:4px;"><div style="width:16px;height:3px;border-radius:2px;background:#7f1d1d;"></div><span style="font-size:0.65rem;color:rgba(255,255,255,0.6);">{% translate "Failed" context "pavement condition" %}</span></div>
             </div>
         </div>
 
         <!-- Road PCI history chart -->
         <div class="history-chart-container">
-            <div class="chart-resize-handle" id="chartResizeHandle" title="Drag to resize">
+            <div class="chart-resize-handle" id="chartResizeHandle" title="{% translate 'Drag to resize' %}">
                 <i class="fa fa-arrows-alt-v"></i>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span class="section-title" style="margin-bottom: 0;"><i class="fa fa-chart-line" style="margin-right:4px;opacity:0.4;"></i> PCI Along Road</span>
+                <span class="section-title" style="margin-bottom: 0;"><i class="fa fa-chart-line" style="margin-right:4px;opacity:0.4;"></i> {% translate "PCI Along Road" %}</span>
                 <span id="segmentInfo" style="font-size: 0.72rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace;"></span>
             </div>
             <div id="chartWrap" style="height:120px;">
@@ -284,7 +284,7 @@
         <!-- History Trend (shows if same road surveyed multiple times) -->
         <div class="panel-section history-panel" id="historyPanel" style="display:none;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                <span class="section-title" style="margin-bottom:0;"><i class="fa fa-chart-line" style="margin-right:4px;opacity:0.5;"></i> PCI Trend</span>
+                <span class="section-title" style="margin-bottom:0;"><i class="fa fa-chart-line" style="margin-right:4px;opacity:0.5;"></i> {% translate "PCI Trend" %}</span>
                 <span style="font-size:0.65rem;color:#94a3b8;">{{ session.road_name }}</span>
             </div>
             <div id="historyChart" style="display:flex;align-items:flex-end;gap:2px;height:80px;padding:4px 0;"></div>
@@ -295,7 +295,7 @@
         <!-- Defect Breakdown -->
         {% if defect_summary_display %}
         <div class="panel-section">
-            <span class="section-title"><i class="fa fa-chart-pie" style="margin-right:4px;opacity:0.4;"></i> Defect Breakdown</span>
+            <span class="section-title"><i class="fa fa-chart-pie" style="margin-right:4px;opacity:0.4;"></i> {% translate "Defect Breakdown" %}</span>
             <div class="breakdown-bar">
                 {% for item in defect_summary_display %}
                 <div style="flex: {{ item.count }}; background: {{ item.color }};"></div>
@@ -315,20 +315,20 @@
         <!-- Detection list -->
         <div class="panel-section" style="flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                <span class="section-title" style="margin-bottom: 0;">Detections</span>
+                <span class="section-title" style="margin-bottom: 0;">{% translate "Detections" %}</span>
                 <span id="detCount" style="font-size: 0.72rem; color: #94a3b8; font-family: 'JetBrains Mono', monospace;">{{ detections.count }}</span>
             </div>
 
             <!-- Filter chips -->
             <div class="filter-chips" id="filterChips" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;flex-shrink:0;">
-                <button class="filter-chip active" data-filter="all" onclick="filterDets('all',this)">All</button>
+                <button class="filter-chip active" data-filter="all" onclick="filterDets('all',this)">{% translate "All" %}</button>
                 {% for chip in filter_chips %}
                 <button class="filter-chip" data-filter="{{ chip.raw }}" onclick="filterDets('{{ chip.raw }}',this)">{{ chip.name }}</button>
                 {% endfor %}
                 <span style="border-left:1px solid rgba(255,255,255,0.1);margin:0 4px;"></span>
-                {% if sev_counts.critical %}<button class="filter-chip sev-chip" data-sev="critical" onclick="filterSev('critical',this)" style="border-color:#fecaca;color:#ef4444;">Critical ({{ sev_counts.critical }})</button>{% endif %}
-                {% if sev_counts.high %}<button class="filter-chip sev-chip" data-sev="high" onclick="filterSev('high',this)" style="border-color:#fed7aa;color:#f97316;">High ({{ sev_counts.high }})</button>{% endif %}
-                {% if sev_counts.medium %}<button class="filter-chip sev-chip" data-sev="medium" onclick="filterSev('medium',this)" style="border-color:#fef08a;color:#eab308;">Medium ({{ sev_counts.medium }})</button>{% endif %}
+                {% if sev_counts.critical %}<button class="filter-chip sev-chip" data-sev="critical" onclick="filterSev('critical',this)" style="border-color:#fecaca;color:#ef4444;">{% translate "Critical" %} ({{ sev_counts.critical }})</button>{% endif %}
+                {% if sev_counts.high %}<button class="filter-chip sev-chip" data-sev="high" onclick="filterSev('high',this)" style="border-color:#fed7aa;color:#f97316;">{% translate "High" %} ({{ sev_counts.high }})</button>{% endif %}
+                {% if sev_counts.medium %}<button class="filter-chip sev-chip" data-sev="medium" onclick="filterSev('medium',this)" style="border-color:#fef08a;color:#eab308;">{% translate "Medium" %} ({{ sev_counts.medium }})</button>{% endif %}
             </div>
 
             <div class="det-list" id="detList">
@@ -346,14 +346,14 @@
                     <div class="det-body">
                         <div style="display:flex;align-items:center;justify-content:space-between;">
                             <div class="det-type">{{ det.defect_display_name }}</div>
-                            <span class="sev-badge sev-{{ det.severity }}">{{ det.severity }}</span>
+                            <span class="sev-badge sev-{{ det.severity }}">{{ det.severity|severity_label }}</span>
                         </div>
                         <div class="det-meta">
-                            {{ det.distance_km|floatformat:2 }} km &middot; {{ det.confidence|floatformat:0 }}% conf
+                            {{ det.distance_km|floatformat:2 }} {% translate "km" %} &middot; {{ det.confidence|floatformat:0 }}% {% translate "conf" %}
                         </div>
                         <div class="det-actions">
                             <button class="verify-btn reject-btn {% if det.verification_status == 2 %}active-rejected{% endif %}"
-                                    onclick="rejectDetection({{ det.id }}, this); event.stopPropagation();">&#10007; Reject</button>
+                                    onclick="rejectDetection({{ det.id }}, this); event.stopPropagation();">&#10007; {% translate "Reject" %}</button>
                         </div>
                     </div>
                 </div>
@@ -402,8 +402,8 @@ SEGMENTS.forEach(function(seg) {
     line.on('mouseover', function() { this.setStyle({ weight: 8, opacity: 1 }); });
     line.on('mouseout', function() { this.setStyle({ weight: 5, opacity: 0.85 }); });
     line.bindPopup(
-        '<b>Segment ' + seg.index + '</b><br>PCI: <b style="color:' + seg.color + '">' + seg.pci + '</b> — ' + seg.rating +
-        '<br><span style="font-size:0.8em;color:#64748b;">' + seg.defects + ' defects</span>'
+        '<b>{{ _("Segment")|escapejs }} ' + seg.index + '</b><br>PCI: <b style="color:' + seg.color + '">' + seg.pci + '</b> — ' + trRating(seg.rating) +
+        '<br><span style="font-size:0.8em;color:#64748b;">' + fmt('{{ _("Defects: %(count)s")|escapejs }}', {count: seg.defects}) + '</span>'
     );
     coords.forEach(function(c) { allBounds.extend(c); });
 });
@@ -461,7 +461,7 @@ var HISTORY_LINES = {{ history_segments_json|safe }};
         lines = HISTORY_LINES;
     } else {
         lines = [{
-            id: 0, date: 'Current', is_current: true, avg_pci: null,
+            id: 0, date: '{{ _("Current")|escapejs }}', is_current: true, avg_pci: null,
             points: SEGMENTS.map(function(s) { return { km: s.start_km, pci: s.pci }; })
         }];
     }
@@ -655,14 +655,14 @@ function showDetPopup(visible, idx) {
         '<div class="det-popup-body">' +
             '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
                 '<span style="font-weight:700;font-size:0.85rem;">' + det.type + '</span>' +
-                '<span style="background:' + sevColor + ';color:#fff;padding:1px 8px;border-radius:10px;font-size:0.6rem;font-weight:600;">' + det.severity + '</span>' +
+                '<span style="background:' + sevColor + ';color:#fff;padding:1px 8px;border-radius:10px;font-size:0.6rem;font-weight:600;">' + trSeverity(det.severity) + '</span>' +
             '</div>' +
-            '<div style="font-size:0.72rem;color:#94a3b8;">Confidence: ' + Math.round(det.confidence*100) + '% &middot; ' + det.distance_km.toFixed(2) + ' km</div>' +
+            '<div style="font-size:0.72rem;color:#94a3b8;">{{ _("Confidence:")|escapejs }} ' + Math.round(det.confidence*100) + '% &middot; ' + det.distance_km.toFixed(2) + ' {{ _("km")|escapejs }}</div>' +
         '</div>' +
         '<div class="det-popup-nav">' +
-            '<button class="prev-btn" ' + (idx === 0 ? 'disabled' : '') + '><i class="fa fa-arrow-left"></i> Prev</button>' +
+            '<button class="prev-btn" ' + (idx === 0 ? 'disabled' : '') + '><i class="fa fa-arrow-left"></i> {{ _("Prev")|escapejs }}</button>' +
             '<span class="nav-counter">' + (idx + 1) + ' / ' + total + '</span>' +
-            '<button class="next-btn" ' + (idx === total - 1 ? 'disabled' : '') + '>Next <i class="fa fa-arrow-right"></i></button>' +
+            '<button class="next-btn" ' + (idx === total - 1 ? 'disabled' : '') + '>{{ _("Next")|escapejs }} <i class="fa fa-arrow-right"></i></button>' +
         '</div>';
 
     var prevBtn = container.querySelector('.prev-btn');
@@ -676,13 +676,13 @@ function showDetPopup(visible, idx) {
     if (zoomBtn && det.thumbnail) {
         zoomBtn.addEventListener('click', function(e) {
             e.stopPropagation();
-            openLightbox(det.thumbnail, det.type + ' · ' + det.severity + ' · ' + det.distance_km.toFixed(2) + ' km');
+            openLightbox(det.thumbnail, det.type + ' · ' + trSeverity(det.severity) + ' · ' + det.distance_km.toFixed(2) + ' {{ _("km")|escapejs }}');
         });
     }
     if (imgWrap && det.thumbnail) {
         imgWrap.addEventListener('click', function(e) {
             e.stopPropagation();
-            openLightbox(det.thumbnail, det.type + ' · ' + det.severity + ' · ' + det.distance_km.toFixed(2) + ' km');
+            openLightbox(det.thumbnail, det.type + ' · ' + trSeverity(det.severity) + ' · ' + det.distance_km.toFixed(2) + ' {{ _("km")|escapejs }}');
         });
     }
 
@@ -719,14 +719,14 @@ function rejectDetection(detId, btn) {
         if (newStatus === 'rejected') {
             btn.classList.add('active-rejected');
             btn.closest('.det-card').style.opacity = '0.4';
-            showToast('Detection rejected', 'success');
+            showToast('{{ _("Detection rejected")|escapejs }}', 'success');
         } else {
             btn.classList.remove('active-rejected');
             btn.closest('.det-card').style.opacity = '1';
-            showToast('Rejection undone', 'success');
+            showToast('{{ _("Rejection undone")|escapejs }}', 'success');
         }
     })
-    .catch(function(err) { console.error('Reject failed:', err); showToast('Action failed', 'error'); });
+    .catch(function(err) { console.error('Reject failed:', err); showToast('{{ _("Action failed")|escapejs }}', 'error'); });
 }
 
 // ─── Filter detections ─────────────────────────────────────────────────
@@ -791,9 +791,9 @@ function saveRoadName() {
         }
         document.getElementById('renameInput').style.display = 'none';
         document.getElementById('roadNameDisplay').style.display = 'block';
-        showToast('Road name saved', 'success');
+        showToast('{{ _("Road name saved")|escapejs }}', 'success');
     })
-    .catch(function(err) { console.error('Rename failed:', err); showToast('Rename failed', 'error'); });
+    .catch(function(err) { console.error('Rename failed:', err); showToast('{{ _("Rename failed")|escapejs }}', 'error'); });
 }
 
 // Enter key to save
@@ -834,8 +834,8 @@ if (HISTORY && HISTORY.length > 1) {
                                  : ' <span style="color:#ef4444;">▼ ' + diff.toFixed(1) + '</span>';
             }
             detailDiv.innerHTML = '<strong>' + h.date + '</strong> — PCI <strong style="color:' + color + '">' +
-                (pci ? pci.toFixed(1) : '—') + '</strong> (' + h.condition.replace('_',' ') + ')' + arrow +
-                ' · ' + h.defects + ' defects';
+                (pci ? pci.toFixed(1) : '—') + '</strong> (' + trRating(h.condition) + ')' + arrow +
+                ' · ' + fmt('{{ _("Defects: %(count)s")|escapejs }}', {count: h.defects});
         };
         chartDiv.appendChild(bar);
 
@@ -849,9 +849,9 @@ if (HISTORY && HISTORY.length > 1) {
     var first = HISTORY[0], last = HISTORY[HISTORY.length - 1];
     if (first.pci && last.pci) {
         var diff = last.pci - first.pci;
-        var trend = diff > 5 ? 'Improving ▲' : diff < -5 ? 'Worsening ▼' : 'Stable —';
+        var trend = diff > 5 ? '{{ _("Improving")|escapejs }} ▲' : diff < -5 ? '{{ _("Worsening")|escapejs }} ▼' : '{{ _("Stable")|escapejs }} —';
         var trendColor = diff > 5 ? '#22c55e' : diff < -5 ? '#ef4444' : '#94a3b8';
-        detailDiv.innerHTML = 'Trend: <strong style="color:' + trendColor + '">' + trend +
+        detailDiv.innerHTML = '{{ _("Trend:")|escapejs }} <strong style="color:' + trendColor + '">' + trend +
             '</strong> (PCI ' + first.pci.toFixed(0) + ' → ' + last.pci.toFixed(0) + ')';
     }
 }

@@ -1,4 +1,5 @@
 import os
+from django.utils.translation import gettext_lazy as _
 from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -9,7 +10,9 @@ def validate_image_extension(value):
     ext = os.path.splitext(value.name)[-1].lower()
     valid_extensions = [".jpg", ".jpeg", ".png"]
     if ext not in valid_extensions:
-        raise ValidationError(f"Unsupported file type: {ext}. Use JPG or PNG.")
+        raise ValidationError(
+            _("Unsupported file type: %(ext)s. Use JPG or PNG.") % {"ext": ext}
+        )
 
 
 import os
@@ -25,11 +28,11 @@ def project_image_path(instance, filename):
 
 class Project(models.Model):
     class Status(models.IntegerChoices):
-        CREATED = 0, "Created"
-        UPLOADED = 1, "Images Uploaded"
-        PROCESSING = 2, "Processing"
-        FAILED = 3, "Failed"
-        COMPLETED = 4, "Completed"
+        CREATED = 0, _("Created")
+        UPLOADED = 1, _("Images Uploaded")
+        PROCESSING = 2, _("Processing")
+        FAILED = 3, _("Failed")
+        COMPLETED = 4, _("Completed")
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="projects")
     name = models.CharField(max_length=100)

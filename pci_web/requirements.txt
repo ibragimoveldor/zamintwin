@@ -20,5 +20,6 @@ pandas>=2.1
 Pillow>=10.0.0   # or just Pillow if you don't care about version
 # Dev
 pytest>=8.0
-pytest-django>=4.
+pytest-django>=4.0
+pypdf>=5.0
 reportlab

@@ -1,7 +1,7 @@
-{% load static %}
+{% load static i18n %}
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -224,13 +224,13 @@
             <span class="sidebar-brand-text">amin<span class="twin">Twin</span><span class="ai">.ai</span></span>
         </div>
         <nav class="left-nav">
-            <a href="{% url 'projects:index' %}"><i class="fa fa-road"></i> <span>Projects</span></a>
-            <a href="{% url 'sessions:city_selector' %}"><i class="fa fa-map-marked-alt"></i> <span>Road Inspection</span></a>
-            <a href="{% url 'reports:index' %}"><i class="fa fa-file-alt"></i> <span>Reports</span></a>
-            <a href="{% url 'accounts:index' %}"><i class="fa fa-users-cog"></i> <span>Settings</span></a>
+            <a href="{% url 'projects:index' %}"><i class="fa fa-road"></i> <span>{% translate "Projects" %}</span></a>
+            <a href="{% url 'sessions:city_selector' %}"><i class="fa fa-map-marked-alt"></i> <span>{% translate "Road Inspection" %}</span></a>
+            <a href="{% url 'reports:index' %}"><i class="fa fa-file-alt"></i> <span>{% translate "Reports" %}</span></a>
+            <a href="{% url 'accounts:index' %}"><i class="fa fa-users-cog"></i> <span>{% translate "Settings" %}</span></a>
         </nav>
         <div class="sidebar-footer">
-            <a href="{% url 'accounts:logout' %}"><i class="fa fa-sign-out-alt"></i> <span>Sign Out</span></a>
+            <a href="{% url 'accounts:logout' %}"><i class="fa fa-sign-out-alt"></i> <span>{% translate "Sign Out" %}</span></a>
         </div>
         <button class="sidebar-toggle" id="sidebarToggle"><i class="fa fa-chevron-right"></i></button>
     </nav>
@@ -245,15 +245,16 @@
                 </ol>
             </div>
             <div style="display:flex;align-items:center;gap:10px;">
-            <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode"><i class="fa fa-moon"></i></button>
+            <div style="color:var(--text-secondary);">{% include "includes/language_switcher.html" %}</div>
+            <button class="theme-toggle" id="themeToggle" title="{% translate 'Toggle dark/light mode' %}"><i class="fa fa-moon"></i></button>
             <div class="topbar-dropdown" id="userDropdown">
                 <div class="topbar-user">
                     <span class="topbar-username">{% if user.is_authenticated %}{{ user.username }}{% endif %}</span>
                     <div class="topbar-avatar">{% if user.is_authenticated %}{{ user.username|make_list|first|upper }}{% else %}?{% endif %}</div>
                 </div>
                 <div class="topbar-menu" id="userMenu">
-                    <a href="{% url 'accounts:index' %}"><i class="fa fa-cog" style="color:#94a3b8;"></i> Settings</a>
-                    <a href="{% url 'accounts:logout' %}" class="logout"><i class="fa fa-sign-out-alt"></i> Sign Out</a>
+                    <a href="{% url 'accounts:index' %}"><i class="fa fa-cog" style="color:#94a3b8;"></i> {% translate "Settings" %}</a>
+                    <a href="{% url 'accounts:logout' %}" class="logout"><i class="fa fa-sign-out-alt"></i> {% translate "Sign Out" %}</a>
                 </div>
             </div>
             </div>
@@ -279,7 +280,47 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="{% static 'js/umd_popper.js' %}"></script>
 <script src="{% static 'js/bootstrap.min.js' %}"></script>
+{% translate "Failed" context "pavement condition" as failed_condition %}
 <script>
+window.PCI_CONDITION_LABELS = {
+        'Not Damaged': '{{ _("Not Damaged")|escapejs }}',
+        'Good': '{{ _("Good")|escapejs }}',
+        'Satisfactory': '{{ _("Satisfactory")|escapejs }}',
+        'Fair': '{{ _("Fair")|escapejs }}',
+        'Poor': '{{ _("Poor")|escapejs }}',
+        'Very Poor': '{{ _("Very Poor")|escapejs }}',
+        'Serious': '{{ _("Serious")|escapejs }}',
+        'Failed': '{{ failed_condition|escapejs }}',
+        'Serious / Failed': '{{ _("Serious / Failed")|escapejs }}'
+};
+window.RATING_LABELS = {
+    'good': '{{ _("Good")|escapejs }}',
+    'satisfactory': '{{ _("Satisfactory")|escapejs }}',
+    'fair': '{{ _("Fair")|escapejs }}',
+    'poor': '{{ _("Poor")|escapejs }}',
+    'very_poor': '{{ _("Very Poor")|escapejs }}',
+    'serious': '{{ _("Serious")|escapejs }}',
+    'failed': '{{ failed_condition|escapejs }}'
+};
+window.SEVERITY_LABELS = {
+    'critical': '{{ _("Critical")|escapejs }}',
+    'high': '{{ _("High")|escapejs }}',
+    'medium': '{{ _("Medium")|escapejs }}',
+    'low': '{{ _("Low")|escapejs }}'
+};
+window.trRating = function(rating) {
+    return window.RATING_LABELS[rating] || String(rating || '').replace('_', ' ');
+};
+window.trSeverity = function(severity) {
+    return window.SEVERITY_LABELS[severity] || severity;
+};
+window.fmt = function(template, values) {
+    return template.replace(/%\((\w+)\)s/g, function(match, key) { return values[key]; });
+};
+window.trCondition = function(condition) {
+    return window.PCI_CONDITION_LABELS[condition] || condition;
+};
+
 $(document).ready(function() {
     // Sidebar toggle with localStorage persistence
     var sidebar = $('#left-sidebar');

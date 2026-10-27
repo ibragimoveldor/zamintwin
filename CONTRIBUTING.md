@@ -169,6 +169,28 @@ celery -A config worker -l info
 
 ---
 
+## Translations (English, Uzbek, Russian)
+
+The web app and its PDF reports are available in English, Uzbek (Latin script) and Russian.
+Users pick a language with the switcher in the top bar or on the login page; the choice is stored in the `django_language` cookie.
+
+- Templates: wrap visible text in `{% translate "..." %}` (or `{% blocktranslate %}` for text with variables or plurals).
+- Strings inside inline `<script>` blocks: use `'{{ _("...")|escapejs }}'`, and `fmt('{{ _("Defects: %(count)s")|escapejs }}', {count: n})` for values.
+- Python: `gettext` / `ngettext` from `django.utils.translation`. Keep internal keys (`good`, `critical`, `pending`) untranslated and translate only when displaying them.
+- PDF reports use DejaVu Sans (`static/fonts/dejavu/`) because the built-in Helvetica has no Cyrillic glyphs.
+
+After changing any user-facing text:
+
+```bash
+cd pci_web
+python manage.py makemessages -l uz -l ru --ignore='.venv/*' --no-location
+# translate the new entries in locale/uz/ and locale/ru/ django.po files, and remove any "#, fuzzy" flags
+python manage.py compilemessages --ignore='.venv/*'
+pytest
+```
+
+The tests fail if any message is left untranslated or fuzzy. Commit both the `.po` and the compiled `.mo` files.
+
 ## Environment Files
 
 | File | In Git? | Purpose |

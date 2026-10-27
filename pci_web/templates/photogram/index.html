@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}Projects — PCI Assessment{% endblock %}
+{% block title %}{% translate "Projects" %} — {% translate "PCI Assessment" %}{% endblock %}
 
 {% block style %}
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -136,8 +136,8 @@
 {% endblock %}
 
 {% block breadcrumb %}
-    <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">Home</a></li>
-    <li class="breadcrumb-item active">Projects</li>
+    <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">{% translate "Home" %}</a></li>
+    <li class="breadcrumb-item active">{% translate "Projects" %}</li>
 {% endblock %}
 
 {% block content %}
@@ -153,11 +153,11 @@
 
     <div class="proj-header">
         <div>
-            <h4>Projects</h4>
-            <p>{{ projects|length }} project{{ projects|length|pluralize }} — PCI road assessment</p>
+            <h4>{% translate "Projects" %}</h4>
+            <p>{% blocktranslate count counter=projects|length %}{{ counter }} project{% plural %}{{ counter }} projects{% endblocktranslate %} — {% translate "PCI road assessment" %}</p>
         </div>
         <button class="btn-new-project" data-toggle="modal" data-target="#projectModal">
-            <i class="fa fa-plus"></i> New Project
+            <i class="fa fa-plus"></i> {% translate "New Project" %}
         </button>
     </div>
 
@@ -178,15 +178,15 @@
                     {% if project.status == 4 %}style="background:#dcfce7;color:#166534;"{% endif %}
                 >
                 {% if project.status == 0 %}
-                    <i class="fa fa-folder-open"></i> Created
+                    <i class="fa fa-folder-open"></i> {% translate "Created" %}
                 {% elif project.status == 1 %}
-                    <i class="fa fa-cloud-upload-alt"></i> Uploaded
+                    <i class="fa fa-cloud-upload-alt"></i> {% translate "Uploaded" %}
                 {% elif project.status == 2 %}
-                    <i class="fa fa-spinner fa-spin"></i> Processing
+                    <i class="fa fa-spinner fa-spin"></i> {% translate "Processing" %}
                 {% elif project.status == 3 %}
-                    <i class="fa fa-exclamation-triangle"></i> Failed
+                    <i class="fa fa-exclamation-triangle"></i> {% translate "Failed" %}
                 {% else %}
-                    <i class="fa fa-check-circle"></i> Completed
+                    <i class="fa fa-check-circle"></i> {% translate "Completed" %}
                 {% endif %}
                 </span>
             </div>
@@ -194,23 +194,23 @@
             {% if project.status == 2 %}
             <div class="proj-mini-progress" data-pid="{{ project.id }}">
                 <div class="proj-mini-bar"><div class="proj-mini-fill"></div></div>
-                <div class="proj-mini-text mono">Analyzing...</div>
+                <div class="proj-mini-text mono">{% translate "Analyzing..." %}</div>
             </div>
             {% endif %}
             <div class="proj-card-body">
                 <div class="proj-stats">
                     <div class="proj-stat-item">
                         <div class="proj-stat-val mono">{{ project.images.count }}</div>
-                        <div class="proj-stat-lbl">Images</div>
+                        <div class="proj-stat-lbl">{% translate "Images" %}</div>
                     </div>
                     {% if project.status == 4 %}
                     <div class="proj-stat-item">
                         <div class="proj-stat-val mono proj-pci-val" data-project-id="{{ project.id }}">—</div>
-                        <div class="proj-stat-lbl">Avg PCI</div>
+                        <div class="proj-stat-lbl">{% translate "Avg PCI" %}</div>
                     </div>
                     <div class="proj-stat-item">
                         <div class="proj-stat-val mono proj-tiles-val" data-project-id="{{ project.id }}">—</div>
-                        <div class="proj-stat-lbl">Tiles</div>
+                        <div class="proj-stat-lbl">{% translate "Tiles" %}</div>
                     </div>
                     {% endif %}
                 </div>
@@ -220,15 +220,15 @@
             </div>
             <div class="proj-card-footer" onclick="event.stopPropagation();">
                 <div class="proj-actions">
-                    <a href="{% url 'projects:upload' project.id %}"><i class="fa fa-upload"></i> Upload</a>
+                    <a href="{% url 'projects:upload' project.id %}"><i class="fa fa-upload"></i> {% translate "Upload" %}</a>
                     {% if project.status == 4 %}
-                    <a href="{% url 'analysis:results' project.id %}"><i class="fa fa-chart-bar"></i> Results</a>
-                    <a href="{% url 'analysis:mapview' project.id %}"><i class="fa fa-map"></i> Map</a>
+                    <a href="{% url 'analysis:results' project.id %}"><i class="fa fa-chart-bar"></i> {% translate "Results" %}</a>
+                    <a href="{% url 'analysis:mapview' project.id %}"><i class="fa fa-map"></i> {% translate "Map" %}</a>
                     {% endif %}
                 </div>
                 <form method="post" action="{% url 'projects:delete' project.pk %}" style="margin:0;" onclick="event.stopPropagation();">
                     {% csrf_token %}
-                    <button type="submit" class="btn-del" onclick="return confirm('Delete project {{ project.name }}?');">
+                    <button type="submit" class="btn-del" {% blocktranslate with name=project.name asvar delete_prompt %}Delete project {{ name }}?{% endblocktranslate %}onclick="return confirm('{{ delete_prompt|escapejs }}');">
                         <i class="fa fa-trash"></i>
                     </button>
                 </form>
@@ -239,8 +239,8 @@
     {% else %}
     <div class="empty-state">
         <i class="fa fa-road"></i>
-        <h5>No projects yet</h5>
-        <p>Create your first project to start PCI assessment</p>
+        <h5>{% translate "No projects yet" %}</h5>
+        <p>{% translate "Create your first project to start PCI assessment" %}</p>
     </div>
     {% endif %}
 
@@ -249,27 +249,27 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fa fa-plus-circle" style="margin-right:8px;"></i> Create New Project</h5>
+                    <h5 class="modal-title"><i class="fa fa-plus-circle" style="margin-right:8px;"></i> {% translate "Create New Project" %}</h5>
                     <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                 </div>
                 <form method="post">
                     {% csrf_token %}
                     <div class="modal-body">
                         <div class="mb-3">
-                            <label class="form-label-custom">Project Name</label>
-                            <input type="text" name="name" class="form-input-custom" placeholder="e.g. Highway 101 — Section A" required>
+                            <label class="form-label-custom">{% translate "Project Name" %}</label>
+                            <input type="text" name="name" class="form-input-custom" placeholder="{% translate 'e.g. Highway 101 — Section A' %}" required>
                         </div>
                         <div>
-                            <label class="form-label-custom">Road Location</label>
+                            <label class="form-label-custom">{% translate "Road Location" %}</label>
                             <div id="createMap"></div>
-                            <div class="map-hint"><i class="fa fa-info-circle"></i> Click on the map to set the road location</div>
+                            <div class="map-hint"><i class="fa fa-info-circle"></i> {% translate "Click on the map to set the road location" %}</div>
                             <input type="hidden" name="lat" id="inputLat" value="37.26">
                             <input type="hidden" name="lng" id="inputLng" value="127.55">
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn-cancel" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn-create"><i class="fa fa-plus"></i> Create Project</button>
+                        <button type="button" class="btn-cancel" data-dismiss="modal">{% translate "Cancel" %}</button>
+                        <button type="submit" class="btn-create"><i class="fa fa-plus"></i> {% translate "Create Project" %}</button>
                     </div>
                 </form>
             </div>
@@ -319,7 +319,7 @@ $(document).ready(function() {
                 $.each(info.conditions, function(cond, count) {
                     var pct = (count / total * 100);
                     var color = condColors[cond] || '#94a3b8';
-                    html += '<div style="width:' + pct + '%;background:' + color + ';" title="' + cond + ': ' + count + ' (' + pct.toFixed(1) + '%)"></div>';
+                    html += '<div style="width:' + pct + '%;background:' + color + ';" title="' + trCondition(cond) + ': ' + count + ' (' + pct.toFixed(1) + '%)"></div>';
                 });
                 $bar.html(html);
             }
@@ -341,7 +341,7 @@ $(document).ready(function() {
                 $('#inputLng').val(lng.toFixed(6));
                 if (createMarker) createMap.removeLayer(createMarker);
                 createMarker = L.marker([lat, lng]).addTo(createMap);
-                createMarker.bindPopup('Location: ' + lat.toFixed(4) + ', ' + lng.toFixed(4)).openPopup();
+                createMarker.bindPopup('{{ _("Location:")|escapejs }} ' + lat.toFixed(4) + ', ' + lng.toFixed(4)).openPopup();
             });
         }
         setTimeout(function() { createMap.invalidateSize(); }, 200);
@@ -375,8 +375,8 @@ $(document).ready(function() {
 
                 var remaining = Math.max(0, totalEst - elapsed);
                 if (pct > 5) { remaining = Math.max(0, (elapsed / (pct / 100)) - elapsed); }
-                var timeStr = remaining < 60 ? Math.ceil(remaining) + 's' : Math.floor(remaining/60) + 'min ' + Math.ceil(remaining%60) + 's';
-                $mini.find('.proj-mini-text').text(Math.floor(pct) + '% · ~' + timeStr + ' remaining');
+                var timeStr = remaining < 60 ? Math.ceil(remaining) + ' {{ _("sec")|escapejs }}' : Math.floor(remaining/60) + ' {{ _("min")|escapejs }} ' + Math.ceil(remaining%60) + ' {{ _("sec")|escapejs }}';
+                $mini.find('.proj-mini-text').text(Math.floor(pct) + '% · ~' + timeStr + ' {{ _("remaining")|escapejs }}');
             });
         }, 1000);
 
@@ -389,17 +389,17 @@ $(document).ready(function() {
                         var $card = $('.proj-card[data-project-id="' + pid + '"]');
                         var $badge = $card.find('.proj-status-badge');
                         $badge.attr('style', 'background:#dcfce7;color:#166534;');
-                        $badge.html('<i class="fa fa-check-circle"></i> Completed');
+                        $badge.html('<i class="fa fa-check-circle"></i> {{ _("Completed")|escapejs }}');
                         var $mini = $('.proj-mini-progress[data-pid="' + pid + '"]');
                         $mini.find('.proj-mini-fill').css('width', '100%');
-                        $mini.find('.proj-mini-text').text('Complete!');
+                        $mini.find('.proj-mini-text').text('{{ _("Complete!")|escapejs }}');
                         setTimeout(function() { $mini.fadeOut(300); }, 1500);
 
                         // Add Results/Map buttons
                         var $actions = $card.find('.proj-actions');
                         if ($actions.find('.btn-results').length === 0) {
-                            $actions.append('<a class="btn-results" href="/analysis/' + pid + '/results/"><i class="fa fa-chart-bar"></i> Results</a>');
-                            $actions.append('<a href="/analysis/' + pid + '/map/"><i class="fa fa-map"></i> Map</a>');
+                            $actions.append('<a class="btn-results" href="/analysis/' + pid + '/results/"><i class="fa fa-chart-bar"></i> {{ _("Results")|escapejs }}</a>');
+                            $actions.append('<a href="/analysis/' + pid + '/map/"><i class="fa fa-map"></i> {{ _("Map")|escapejs }}</a>');
                         }
 
                         $card.data('status', 4);
@@ -410,9 +410,9 @@ $(document).ready(function() {
                         var $card = $('.proj-card[data-project-id="' + pid + '"]');
                         var $badge = $card.find('.proj-status-badge');
                         $badge.attr('style', 'background:#fee2e2;color:#991b1b;');
-                        $badge.html('<i class="fa fa-exclamation-triangle"></i> Failed');
+                        $badge.html('<i class="fa fa-exclamation-triangle"></i> {{ _("Failed")|escapejs }}');
                         var $mini = $('.proj-mini-progress[data-pid="' + pid + '"]');
-                        $mini.find('.proj-mini-text').text('Failed').css('color', '#ef4444');
+                        $mini.find('.proj-mini-text').text('{{ _("Failed")|escapejs }}').css('color', '#ef4444');
                         $mini.find('.proj-mini-fill').css('background', '#ef4444');
 
                         $card.data('status', 3);

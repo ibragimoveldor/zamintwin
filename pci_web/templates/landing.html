@@ -1,11 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
+{% load i18n %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     {% load static %}
     <link rel="shortcut icon" href="{% static 'images/zamintwin_logo.png' %}">
-    <title>ZaminTwin.ai — AI Road Inspection Platform</title>
+    <title>ZaminTwin.ai — {% translate "AI Road Inspection Platform" %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -160,24 +160,25 @@
         ZaminTwin<span class="dot">.ai</span>
     </a>
     <div class="nav-links">
-        <a href="#features">Features</a>
-        <a href="#how">How it Works</a>
-        <a href="#demo">Request Demo</a>
+        <a href="#features">{% translate "Features" %}</a>
+        <a href="#how">{% translate "How it Works" %}</a>
+        <a href="#demo">{% translate "Request Demo" %}</a>
     </div>
-    <div style="display:flex;gap:8px;">
-        <a href="{% url 'accounts:login' %}" class="nav-btn nav-btn-outline">Sign In</a>
-        <button class="nav-btn nav-btn-primary" onclick="openDemoModal()">Request Demo</button>
+    <div style="display:flex;gap:8px;align-items:center;">
+        <span style="color:var(--text-dim);">{% include "includes/language_switcher.html" %}</span>
+        <a href="{% url 'accounts:login' %}" class="nav-btn nav-btn-outline">{% translate "Sign In" %}</a>
+        <button class="nav-btn nav-btn-primary" onclick="openDemoModal()">{% translate "Request Demo" %}</button>
     </div>
 </nav>
 
 <section class="hero">
     <div>
-        <div class="hero-badge"><i class="fa fa-satellite" style="font-size:0.65rem;"></i> AI-Powered Road Intelligence</div>
-        <h1>Your Road Network,<br><span>Digitized</span></h1>
-        <p>AI-powered platform for road condition assessment, defect detection, and infrastructure monitoring — from a single survey drive.</p>
+        <div class="hero-badge"><i class="fa fa-satellite" style="font-size:0.65rem;"></i> {% translate "AI-Powered Road Intelligence" %}</div>
+        <h1>{% translate "Your Road Network," %}<br><span>{% translate "Digitized" %}</span></h1>
+        <p>{% translate "AI-powered platform for road condition assessment, defect detection, and infrastructure monitoring — from a single survey drive." %}</p>
         <div class="hero-cta">
-            <button class="btn-hero btn-hero-primary" onclick="openDemoModal()"><i class="fa fa-calendar-check"></i> Request Demo</button>
-            <a href="#how" class="btn-hero btn-hero-secondary"><i class="fa fa-play-circle"></i> See How it Works</a>
+            <button class="btn-hero btn-hero-primary" onclick="openDemoModal()"><i class="fa fa-calendar-check"></i> {% translate "Request Demo" %}</button>
+            <a href="#how" class="btn-hero btn-hero-secondary"><i class="fa fa-play-circle"></i> {% translate "See How it Works" %}</a>
         </div>
         <div class="road-strip" id="roadStrip"></div>
     </div>
@@ -185,22 +186,22 @@
 
 <!-- BEFORE / AFTER COMPARISON -->
 <section class="features fade-in" id="features">
-    <div class="section-tag">Why ZaminTwin</div>
-    <div class="section-title">Manual vs AI Inspection</div>
+    <div class="section-tag">{% translate "Why ZaminTwin" %}</div>
+    <div class="section-title">{% translate "Manual vs AI Inspection" %}</div>
     <div class="vs-grid" style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;align-items:stretch;margin-top:48px;">
         <!-- Before -->
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px 0 0 14px;padding:32px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
                 <div style="width:32px;height:32px;border-radius:8px;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;color:#ef4444;font-size:0.9rem;"><i class="fa fa-clock"></i></div>
-                <span style="font-weight:700;font-size:1.1rem;color:#ef4444;">Traditional</span>
+                <span style="font-weight:700;font-size:1.1rem;color:#ef4444;">{% translate "Traditional" %}</span>
             </div>
             <div style="display:flex;flex-direction:column;gap:14px;">
-                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-times-circle" style="color:#ef4444;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text-dim);">2-4 weeks per survey</span></div>
-                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-times-circle" style="color:#ef4444;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text-dim);">3-5 field inspectors required</span></div>
-                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-times-circle" style="color:#ef4444;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text-dim);">Subjective visual assessment</span></div>
-                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-times-circle" style="color:#ef4444;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text-dim);">Manual report writing</span></div>
-                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-times-circle" style="color:#ef4444;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text-dim);">No historical tracking</span></div>
-                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-times-circle" style="color:#ef4444;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text-dim);">$15-25 per km cost</span></div>
+                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-times-circle" style="color:#ef4444;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text-dim);">{% blocktranslate trimmed %}2-4 weeks per survey{% endblocktranslate %}</span></div>
+                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-times-circle" style="color:#ef4444;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text-dim);">{% blocktranslate trimmed %}3-5 field inspectors required{% endblocktranslate %}</span></div>
+                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-times-circle" style="color:#ef4444;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text-dim);">{% blocktranslate trimmed %}Subjective visual assessment{% endblocktranslate %}</span></div>
+                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-times-circle" style="color:#ef4444;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text-dim);">{% blocktranslate trimmed %}Manual report writing{% endblocktranslate %}</span></div>
+                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-times-circle" style="color:#ef4444;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text-dim);">{% blocktranslate trimmed %}No historical tracking{% endblocktranslate %}</span></div>
+                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-times-circle" style="color:#ef4444;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text-dim);">{% blocktranslate trimmed %}$15-25 per km cost{% endblocktranslate %}</span></div>
             </div>
         </div>
         <!-- VS -->
@@ -214,36 +215,36 @@
                 <span style="font-weight:700;font-size:1.1rem;color:#22c55e;">ZaminTwin.ai</span>
             </div>
             <div style="display:flex;flex-direction:column;gap:14px;">
-                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-check-circle" style="color:#22c55e;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text);"><strong>1 day</strong> — drive and done</span></div>
-                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-check-circle" style="color:#22c55e;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text);"><strong>1 operator</strong> with camera vehicle</span></div>
-                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-check-circle" style="color:#22c55e;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text);">AI detection with <strong>photo evidence</strong></span></div>
-                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-check-circle" style="color:#22c55e;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text);"><strong>Instant PDF reports</strong> — one click</span></div>
-                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-check-circle" style="color:#22c55e;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text);"><strong>PCI history</strong> — track changes over time</span></div>
-                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-check-circle" style="color:#22c55e;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text);"><strong>$2-5 per km</strong> — 80% cost reduction</span></div>
+                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-check-circle" style="color:#22c55e;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text);">{% blocktranslate trimmed %}<strong>1 day</strong> — drive and done{% endblocktranslate %}</span></div>
+                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-check-circle" style="color:#22c55e;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text);">{% blocktranslate trimmed %}<strong>1 operator</strong> with camera vehicle{% endblocktranslate %}</span></div>
+                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-check-circle" style="color:#22c55e;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text);">{% blocktranslate trimmed %}AI detection with <strong>photo evidence</strong>{% endblocktranslate %}</span></div>
+                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-check-circle" style="color:#22c55e;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text);">{% blocktranslate trimmed %}<strong>Instant PDF reports</strong> — one click{% endblocktranslate %}</span></div>
+                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-check-circle" style="color:#22c55e;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text);">{% blocktranslate trimmed %}<strong>PCI history</strong> — track changes over time{% endblocktranslate %}</span></div>
+                <div style="display:flex;align-items:center;gap:10px;"><i class="fa fa-check-circle" style="color:#22c55e;font-size:0.8rem;width:16px;"></i><span style="font-size:0.88rem;color:var(--text);">{% blocktranslate trimmed %}<strong>$2-5 per km</strong> — 80% cost reduction{% endblocktranslate %}</span></div>
             </div>
         </div>
     </div>
 </section>
 
 <section class="how-it-works fade-in" id="how">
-    <div class="section-tag">Workflow</div>
-    <div class="section-title">How It Works</div>
-    <div class="section-desc">From survey drive to maintenance report in minutes.</div>
+    <div class="section-tag">{% translate "Workflow" %}</div>
+    <div class="section-title">{% translate "How It Works" %}</div>
+    <div class="section-desc">{% translate "From survey drive to maintenance report in minutes." %}</div>
     <div class="steps">
         <div class="step">
             <div class="step-num">1</div>
-            <h5>Drive & Capture</h5>
-            <p>Mount a camera on your vehicle. Our Jetson edge device detects defects and records GPS track in real-time.</p>
+            <h5>{% translate "Drive & Capture" %}</h5>
+            <p>{% translate "Mount a camera on your vehicle. Our Jetson edge device detects defects and records GPS track in real-time." %}</p>
         </div>
         <div class="step">
             <div class="step-num">2</div>
-            <h5>Upload & Process</h5>
-            <p>Upload the session zip file. AI processes detections, calculates PCI scores, and maps everything automatically.</p>
+            <h5>{% translate "Upload & Process" %}</h5>
+            <p>{% translate "Upload the session zip file. AI processes detections, calculates PCI scores, and maps everything automatically." %}</p>
         </div>
         <div class="step">
             <div class="step-num">3</div>
-            <h5>Review & Report</h5>
-            <p>Browse defects on the map, verify with photos, compare surveys, and generate professional PDF maintenance reports.</p>
+            <h5>{% translate "Review & Report" %}</h5>
+            <p>{% translate "Browse defects on the map, verify with photos, compare surveys, and generate professional PDF maintenance reports." %}</p>
         </div>
     </div>
 </section>
@@ -251,112 +252,112 @@
 <!-- DEMO REQUEST SECTION -->
 <section class="demo-section fade-in" id="demo">
     <div class="demo-form" id="demoFormWrap">
-        <h3>Request a Demo</h3>
-        <p class="subtitle">See ZaminTwin.ai in action with your own road data. We'll schedule a personalized walkthrough.</p>
+        <h3>{% translate "Request a Demo" %}</h3>
+        <p class="subtitle">{% translate "See ZaminTwin.ai in action with your own road data. We’ll schedule a personalized walkthrough." %}</p>
         <form id="demoForm" onsubmit="submitDemoForm(event)">
             <div class="form-row">
                 <div class="form-group">
-                    <label>Full Name *</label>
-                    <input type="text" name="name" required placeholder="Your name">
+                    <label>{% translate "Full Name *" %}</label>
+                    <input type="text" name="name" required placeholder="{% translate 'Your name' %}">
                 </div>
                 <div class="form-group">
-                    <label>Organization *</label>
-                    <input type="text" name="organization" required placeholder="Company or agency">
+                    <label>{% translate "Organization *" %}</label>
+                    <input type="text" name="organization" required placeholder="{% translate 'Company or agency' %}">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Email *</label>
+                    <label>{% translate "Email *" %}</label>
                     <input type="email" name="email" required placeholder="your@email.com">
                 </div>
                 <div class="form-group">
-                    <label>Phone</label>
+                    <label>{% translate "Phone" %}</label>
                     <input type="tel" name="phone" placeholder="+998 XX XXX XX XX">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Role</label>
+                    <label>{% translate "Role" %}</label>
                     <select name="role">
-                        <option value="">Select your role</option>
-                        <option value="engineer">Road Engineer</option>
-                        <option value="manager">Project Manager</option>
-                        <option value="director">Director / Decision Maker</option>
-                        <option value="inspector">Field Inspector</option>
-                        <option value="other">Other</option>
+                        <option value="">{% translate "Select your role" %}</option>
+                        <option value="engineer">{% translate "Road Engineer" %}</option>
+                        <option value="manager">{% translate "Project Manager" %}</option>
+                        <option value="director">{% translate "Director / Decision Maker" %}</option>
+                        <option value="inspector">{% translate "Field Inspector" %}</option>
+                        <option value="other">{% translate "Other" %}</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Road Network Size</label>
+                    <label>{% translate "Road Network Size" %}</label>
                     <select name="network_size">
-                        <option value="">Approximate size</option>
-                        <option value="small">Under 100 km</option>
+                        <option value="">{% translate "Approximate size" %}</option>
+                        <option value="small">{% translate "Under 100 km" %}</option>
                         <option value="medium">100 - 500 km</option>
                         <option value="large">500 - 2,000 km</option>
-                        <option value="xlarge">Over 2,000 km</option>
+                        <option value="xlarge">{% translate "Over 2,000 km" %}</option>
                     </select>
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group full">
-                    <label>Message</label>
-                    <textarea name="message" placeholder="Tell us about your road inspection needs..."></textarea>
+                    <label>{% translate "Message" %}</label>
+                    <textarea name="message" placeholder="{% translate 'Tell us about your road inspection needs...' %}"></textarea>
                 </div>
             </div>
-            <button type="submit" class="form-submit"><i class="fa fa-paper-plane" style="margin-right:8px;"></i> Request Demo</button>
+            <button type="submit" class="form-submit"><i class="fa fa-paper-plane" style="margin-right:8px;"></i> {% translate "Request Demo" %}</button>
         </form>
         <div class="form-success" id="demoSuccess">
             <i class="fa fa-check-circle"></i>
-            <h4>Thank You!</h4>
-            <p>We'll contact you within 24 hours to schedule your personalized demo.</p>
+            <h4>{% translate "Thank You!" %}</h4>
+            <p>{% translate "We’ll contact you within 24 hours to schedule your personalized demo." %}</p>
         </div>
     </div>
 </section>
 
 <footer>
-    <span>&copy; 2026 ZaminTwin.ai. All rights reserved.</span>
-    <span>AI-Powered Road Intelligence &middot; ASTM D6433 Compliant</span>
+    <span>&copy; 2026 ZaminTwin.ai. {% translate "All rights reserved." %}</span>
+    <span>{% translate "AI-Powered Road Intelligence" %} &middot; {% translate "ASTM D6433 Compliant" %}</span>
 </footer>
 
 <!-- DEMO MODAL (triggered from nav/hero buttons) -->
 <div class="demo-modal" id="demoModal">
     <div class="demo-modal-content">
         <button class="demo-modal-close" onclick="closeDemoModal()">&times;</button>
-        <h3 style="font-size:1.3rem;font-weight:800;margin-bottom:8px;">Request a Demo</h3>
-        <p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:24px;">We'll schedule a personalized walkthrough of ZaminTwin.ai.</p>
+        <h3 style="font-size:1.3rem;font-weight:800;margin-bottom:8px;">{% translate "Request a Demo" %}</h3>
+        <p style="font-size:0.85rem;color:var(--text-dim);margin-bottom:24px;">{% translate "We’ll schedule a personalized walkthrough of ZaminTwin.ai." %}</p>
         <form id="demoFormModal" onsubmit="submitDemoFormModal(event)">
             <div class="form-row">
                 <div class="form-group">
-                    <label>Full Name *</label>
-                    <input type="text" name="name" required placeholder="Your name">
+                    <label>{% translate "Full Name *" %}</label>
+                    <input type="text" name="name" required placeholder="{% translate 'Your name' %}">
                 </div>
                 <div class="form-group">
-                    <label>Organization *</label>
-                    <input type="text" name="organization" required placeholder="Company or agency">
+                    <label>{% translate "Organization *" %}</label>
+                    <input type="text" name="organization" required placeholder="{% translate 'Company or agency' %}">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Email *</label>
+                    <label>{% translate "Email *" %}</label>
                     <input type="email" name="email" required placeholder="your@email.com">
                 </div>
                 <div class="form-group">
-                    <label>Phone</label>
+                    <label>{% translate "Phone" %}</label>
                     <input type="tel" name="phone" placeholder="+998 XX XXX XX XX">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group full">
-                    <label>Message</label>
-                    <textarea name="message" placeholder="Tell us about your needs..." rows="3"></textarea>
+                    <label>{% translate "Message" %}</label>
+                    <textarea name="message" placeholder="{% translate 'Tell us about your needs...' %}" rows="3"></textarea>
                 </div>
             </div>
-            <button type="submit" class="form-submit"><i class="fa fa-paper-plane" style="margin-right:8px;"></i> Request Demo</button>
+            <button type="submit" class="form-submit"><i class="fa fa-paper-plane" style="margin-right:8px;"></i> {% translate "Request Demo" %}</button>
         </form>
         <div class="form-success" id="demoSuccessModal">
             <i class="fa fa-check-circle"></i>
-            <h4>Thank You!</h4>
-            <p>We'll be in touch within 24 hours.</p>
+            <h4>{% translate "Thank You!" %}</h4>
+            <p>{% translate "We’ll be in touch within 24 hours." %}</p>
         </div>
     </div>
 </div>

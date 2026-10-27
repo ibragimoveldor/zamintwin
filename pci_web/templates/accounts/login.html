@@ -1,11 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
+{% load i18n %}<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     {% load static %}
     <link rel="shortcut icon" href="{% static 'images/zamintwin_logo.png' %}">
-    <title>Sign In — ZaminTwin</title>
+    <title>{% translate "Sign In" %} — ZaminTwin</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -89,6 +89,8 @@
         color: #64748b; text-decoration: none; margin-bottom: 32px; transition: color 0.2s;
     }
     .back-link:hover { color: white; }
+    .form-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; color: #64748b; }
+    .form-topbar .back-link { margin-bottom: 0; }
 
     @media (max-width: 900px) {
         body { flex-direction: column; }
@@ -104,26 +106,26 @@
         <img src="{% static 'images/zamintwin_logo.png' %}" alt="Z">amin<span class="twin">Twin</span><span class="ai">.ai</span>
     </div>
     <div class="brand-content">
-        <h2>AI-Powered<br><span>Road Intelligence</span></h2>
-        <p>Automated pavement condition assessment for modern infrastructure management. Detect damage, score conditions, plan maintenance.</p>
+        <h2>{% translate "AI-Powered" %}<br><span>{% translate "Road Intelligence" %}</span></h2>
+        <p>{% translate "Automated pavement condition assessment for modern infrastructure management. Detect damage, score conditions, plan maintenance." %}</p>
     </div>
     <div>
         <div class="brand-features">
             <div class="brand-feature">
                 <div class="brand-feature-dot" style="background:#22c55e;"></div>
-                Computer vision crack detection
+                {% translate "Computer vision crack detection" %}
             </div>
             <div class="brand-feature">
                 <div class="brand-feature-dot" style="background:#3b82f6;"></div>
-                ASTM D6433 PCI scoring
+                {% translate "ASTM D6433 PCI scoring" %}
             </div>
             <div class="brand-feature">
                 <div class="brand-feature-dot" style="background:#eab308;"></div>
-                GPS-referenced interactive maps
+                {% translate "GPS-referenced interactive maps" %}
             </div>
             <div class="brand-feature">
                 <div class="brand-feature-dot" style="background:#8b5cf6;"></div>
-                One-click PDF reports
+                {% translate "One-click PDF reports" %}
             </div>
         </div>
         <div class="login-road-strip">
@@ -144,9 +146,12 @@
 </div>
 
 <div class="login-form-panel">
-    <a href="/" class="back-link">← Back to home</a>
-    <h3>Welcome back</h3>
-    <p class="subtitle">Sign in to your ZaminTwin account</p>
+    <div class="form-topbar">
+        <a href="/" class="back-link">← {% translate "Back to home" %}</a>
+        {% include "includes/language_switcher.html" %}
+    </div>
+    <h3>{% translate "Welcome back" %}</h3>
+    <p class="subtitle">{% translate "Sign in to your ZaminTwin account" %}</p>
 
     {% if login_error %}
     <div class="form-error">{{ login_error }}</div>
@@ -155,18 +160,18 @@
     <form method="post">
         {% csrf_token %}
         <div class="form-group">
-            <label class="form-label">Username</label>
-            <input type="text" name="email" class="form-input" placeholder="Enter your username" required autofocus>
+            <label class="form-label">{% translate "Username" %}</label>
+            <input type="text" name="email" class="form-input" placeholder="{% translate 'Enter your username' %}" required autofocus>
         </div>
         <div class="form-group">
-            <label class="form-label">Password</label>
-            <input type="password" name="pws" class="form-input" placeholder="Enter your password" required>
+            <label class="form-label">{% translate "Password" %}</label>
+            <input type="password" name="pws" class="form-input" placeholder="{% translate 'Enter your password' %}" required>
         </div>
-        <button type="submit" class="btn-login">Sign In</button>
+        <button type="submit" class="btn-login">{% translate "Sign In" %}</button>
     </form>
 
     <div class="form-footer">
-        <p>Forgot your password? <a href="#">Reset it here</a></p>
+        <p>{% translate "Forgot your password?" %} <a href="#">{% translate "Reset it here" %}</a></p>
     </div>
 </div>
 

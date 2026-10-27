@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n condition_labels %}
 
-{% block title %}Review {{ stats.count }} Sessions{% endblock %}
+{% block title %}{% blocktranslate count counter=stats.count %}Review {{ counter }} session{% plural %}Review {{ counter }} sessions{% endblocktranslate %}{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'sessions:network_map' %}">Road Inspection</a></li>
-<li class="breadcrumb-item active">Review {{ stats.count }} Sessions</li>
+<li class="breadcrumb-item"><a href="{% url 'sessions:network_map' %}">{% translate "Road Inspection" %}</a></li>
+<li class="breadcrumb-item active">{% blocktranslate count counter=stats.count %}Review {{ counter }} session{% plural %}Review {{ counter }} sessions{% endblocktranslate %}</li>
 {% endblock %}
 
 {% block style %}
@@ -101,19 +101,19 @@
     <div class="review-left">
         <div class="review-topbar">
             <a href="{% url 'sessions:network_map' %}" style="color:#3b82f6;font-size:0.85rem;text-decoration:none;"><i class="fa fa-arrow-left"></i></a>
-            <h5>Review {{ stats.count }} Sessions</h5>
-            <span class="stat-pill">{{ stats.total_distance }} km</span>
+            <h5>{% blocktranslate count counter=stats.count %}Review {{ counter }} session{% plural %}Review {{ counter }} sessions{% endblocktranslate %}</h5>
+            <span class="stat-pill">{{ stats.total_distance }} {% translate "km" %}</span>
             <span class="stat-pill" style="color:{% if stats.avg_pci >= 85 %}#16a34a{% elif stats.avg_pci >= 70 %}#84cc16{% elif stats.avg_pci >= 55 %}#ca8a04{% else %}#ef4444{% endif %};">PCI {{ stats.avg_pci|default:"—" }}</span>
-            <span class="stat-pill" style="color:#f97316;">{{ stats.total_defects }} defects</span>
-            <a href="{% url 'sessions:multi_pdf_report' %}?ids={{ session_ids }}" style="margin-left:auto;padding:5px 14px;background:#3b82f6;color:#fff;border-radius:6px;font-size:0.75rem;font-weight:600;text-decoration:none;white-space:nowrap;"><i class="fa fa-file-pdf" style="margin-right:4px;"></i>PDF Report</a>
+            <span class="stat-pill" style="color:#f97316;">{% blocktranslate count counter=stats.total_defects %}{{ counter }} defect{% plural %}{{ counter }} defects{% endblocktranslate %}</span>
+            <a href="{% url 'sessions:multi_pdf_report' %}?ids={{ session_ids }}" style="margin-left:auto;padding:5px 14px;background:#3b82f6;color:#fff;border-radius:6px;font-size:0.75rem;font-weight:600;text-decoration:none;white-space:nowrap;"><i class="fa fa-file-pdf" style="margin-right:4px;"></i>{% translate "PDF Report" %}</a>
         </div>
         <div id="reviewMap"></div>
     </div>
 
     <div class="review-right">
         <div class="rp-header">
-            <h6><i class="fa fa-clipboard-list" style="margin-right:6px;opacity:0.4;"></i> Sessions</h6>
-            <span style="font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'JetBrains Mono',monospace;">{{ stats.count }} total</span>
+            <h6><i class="fa fa-clipboard-list" style="margin-right:6px;opacity:0.4;"></i> {% translate "Sessions" %}</h6>
+            <span style="font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'JetBrains Mono',monospace;">{% blocktranslate with count=stats.count %}{{ count }} total{% endblocktranslate %}</span>
         </div>
         <div class="review-list">
             {% for sd in sessions_data %}
@@ -126,11 +126,11 @@
                 </div>
                 <div class="src-meta">
                     <span>{{ sd.session.start_time|date:"M d, Y" }}</span>
-                    <span>{{ sd.session.distance_km|floatformat:1 }} km</span>
-                    <span>{{ sd.det_count }} defects</span>
+                    <span>{{ sd.session.distance_km|floatformat:1 }} {% translate "km" %}</span>
+                    <span>{% blocktranslate count counter=sd.det_count %}{{ counter }} defect{% plural %}{{ counter }} defects{% endblocktranslate %}</span>
                 </div>
                 <div class="src-actions">
-                    <a href="{% url 'sessions:detail' sd.session.pk %}" class="src-btn-detail"><i class="fa fa-eye" style="margin-right:4px;"></i>Detail</a>
+                    <a href="{% url 'sessions:detail' sd.session.pk %}" class="src-btn-detail"><i class="fa fa-eye" style="margin-right:4px;"></i>{% translate "Detail" %}</a>
                     <a href="{% url 'sessions:pdf_report' sd.session.pk %}" class="src-btn-pdf"><i class="fa fa-file-pdf"></i> PDF</a>
                     <button class="src-btn-focus" onclick="event.stopPropagation();focusSession({{ sd.session.pk }});"><i class="fa fa-crosshairs"></i></button>
                 </div>
@@ -139,11 +139,11 @@
                     <div class="src-det-item" onclick="event.stopPropagation();selectDet({{ det.id }});">
                         <div class="dot" style="background:{% if det.severity == 'critical' %}#ef4444{% elif det.severity == 'high' %}#f97316{% else %}#eab308{% endif %};"></div>
                         <span>{{ det.defect_display_name }}</span>
-                        <span style="color:rgba(255,255,255,0.25);margin-left:auto;">{{ det.distance_km|floatformat:2 }} km</span>
+                        <span style="color:rgba(255,255,255,0.25);margin-left:auto;">{{ det.distance_km|floatformat:2 }} {% translate "km" %}</span>
                     </div>
                     {% endfor %}
                     {% if sd.det_count > 20 %}
-                    <div style="font-size:0.62rem;color:rgba(255,255,255,0.2);padding:4px 0;text-align:center;">+ {{ sd.det_count|add:"-20" }} more</div>
+                    <div style="font-size:0.62rem;color:rgba(255,255,255,0.2);padding:4px 0;text-align:center;">{% blocktranslate with count=sd.det_count|add:"-20" %}+ {{ count }} more{% endblocktranslate %}</div>
                     {% endif %}
                 </div>
             </div>
@@ -304,14 +304,14 @@ function showDetPopup(idx) {
         '<div class="det-popup-body">' +
             '<div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">' +
                 '<span style="font-weight:700;font-size:0.82rem;">' + det.type + '</span>' +
-                '<span style="background:' + sevColor + ';color:#fff;padding:1px 7px;border-radius:10px;font-size:0.58rem;font-weight:600;">' + det.severity + '</span>' +
+                '<span style="background:' + sevColor + ';color:#fff;padding:1px 7px;border-radius:10px;font-size:0.58rem;font-weight:600;">' + trSeverity(det.severity) + '</span>' +
             '</div>' +
-            '<div style="font-size:0.68rem;color:#94a3b8;">' + Math.round(det.confidence*100) + '% &middot; ' + det.distance_km.toFixed(2) + ' km</div>' +
+            '<div style="font-size:0.68rem;color:#94a3b8;">' + Math.round(det.confidence*100) + '% &middot; ' + det.distance_km.toFixed(2) + ' {{ _("km")|escapejs }}</div>' +
         '</div>' +
         '<div class="det-popup-nav">' +
-            '<button class="prev-btn" ' + (idx === 0 ? 'disabled' : '') + '><i class="fa fa-arrow-left"></i> Prev</button>' +
+            '<button class="prev-btn" ' + (idx === 0 ? 'disabled' : '') + '><i class="fa fa-arrow-left"></i> {{ _("Prev")|escapejs }}</button>' +
             '<span class="nav-counter">' + (idx + 1) + ' / ' + total + '</span>' +
-            '<button class="next-btn" ' + (idx === total - 1 ? 'disabled' : '') + '>Next <i class="fa fa-arrow-right"></i></button>' +
+            '<button class="next-btn" ' + (idx === total - 1 ? 'disabled' : '') + '>{{ _("Next")|escapejs }} <i class="fa fa-arrow-right"></i></button>' +
         '</div>';
 
     var prevBtn = container.querySelector('.prev-btn');
@@ -322,10 +322,10 @@ function showDetPopup(idx) {
     var zoomBtn = container.querySelector('.det-popup-zoom');
     var imgWrap = container.querySelector('.det-popup-imgwrap');
     if (zoomBtn && det.thumbnail) {
-        zoomBtn.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(det.thumbnail, det.type + ' · ' + det.severity); });
+        zoomBtn.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(det.thumbnail, det.type + ' · ' + trSeverity(det.severity)); });
     }
     if (imgWrap && det.thumbnail) {
-        imgWrap.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(det.thumbnail, det.type + ' · ' + det.severity); });
+        imgWrap.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(det.thumbnail, det.type + ' · ' + trSeverity(det.severity)); });
     }
 
     detPopup.setLatLng([det.lat, det.lon]).setContent(container).openOn(map);

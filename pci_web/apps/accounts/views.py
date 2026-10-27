@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
 from django.urls import reverse
+from django.utils.translation import gettext as _
 
 from .forms import LoginForm, CreateUserForm
 
@@ -20,16 +21,16 @@ def index(request):
         email = request.POST.get("email", "")
 
         if " " in username:
-            error = "Username should not contain spaces"
+            error = _("Username should not contain spaces")
         elif User.objects.filter(username=username).exists():
-            error = "This username is already in use"
+            error = _("This username is already in use")
         elif User.objects.filter(email=email).exists():
-            error = "This email is already in use"
+            error = _("This email is already in use")
         elif form.is_valid():
             user = form.save(commit=False)
             user.password = make_password(username)
             user.save()
-            success = "User created successfully"
+            success = _("User created successfully")
             form = CreateUserForm()
 
     context = {
@@ -55,7 +56,7 @@ def login_view(request):
         return render(
             request,
             "accounts/login.html",
-            {"form": LoginForm(), "login_error": "Invalid email or password."},
+            {"form": LoginForm(), "login_error": _("Invalid email or password.")},
         )
 
     return render(request, "accounts/login.html", {"form": LoginForm()})
