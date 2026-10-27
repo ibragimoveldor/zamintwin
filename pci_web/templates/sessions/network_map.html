@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n condition_labels %}
 
-{% block title %}Road Inspection — ZaminTwin.ai{% endblock %}
+{% block title %}{% translate "Road Inspection" %} — ZaminTwin.ai{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item active">Road Inspection</li>
+<li class="breadcrumb-item active">{% translate "Road Inspection" %}</li>
 {% endblock %}
 
 {% block style %}
@@ -145,11 +145,12 @@
     position: absolute; bottom: 16px; left: 16px; z-index: 1000;
     background: var(--panel-overlay-bg); backdrop-filter: blur(12px);
     border: 1px solid var(--panel-border); border-radius: 10px;
-    padding: 12px 18px; display: flex; gap: 16px; align-items: center;
+    padding: 12px 18px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center;
+    max-width: calc(100% - 32px);
 }
 .legend-item { display: flex; align-items: center; gap: 6px; }
 .legend-line { width: 24px; height: 4px; border-radius: 2px; }
-.legend-label { font-size: 0.78rem; color: var(--panel-text-secondary); font-weight: 500; }
+.legend-label { font-size: 0.78rem; color: var(--panel-text-secondary); font-weight: 500; white-space: nowrap; }
 
 .leaflet-popup-content-wrapper {
     background: var(--panel-bg) !important; color: var(--panel-text) !important;
@@ -310,9 +311,9 @@
             <div class="panel-header">
                 <div style="display:flex;align-items:center;gap:8px;">
                     {% if city_filter %}
-                    <a href="{% url 'sessions:city_selector' %}" style="color:var(--panel-text-muted);text-decoration:none;font-size:0.9rem;" title="Back to cities"><i class="fa fa-arrow-left"></i></a>
+                    <a href="{% url 'sessions:city_selector' %}" style="color:var(--panel-text-muted);text-decoration:none;font-size:0.9rem;" title="{% translate 'Back to cities' %}"><i class="fa fa-arrow-left"></i></a>
                     {% endif %}
-                    <h5 style="margin:0;font-size:1rem;font-weight:700;">{% if city_filter %}{{ city_filter }}{% else %}<i class="fa fa-road" style="margin-right:8px;opacity:0.5;"></i> All Sessions{% endif %}</h5>
+                    <h5 style="margin:0;font-size:1rem;font-weight:700;">{% if city_filter %}{{ city_filter }}{% else %}<i class="fa fa-road" style="margin-right:8px;opacity:0.5;"></i> {% translate "All Sessions" %}{% endif %}</h5>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
                     <span class="count">{{ sessions|length }}</span>
@@ -322,32 +323,32 @@
 
             <div class="panel-stats">
                 <div class="mini-stat">
-                    <div class="label">Surveyed</div>
-                    <div class="value count-up" data-target="{{ stats.total_distance|floatformat:1 }}" data-suffix=" km" data-decimals="1">0.0 km</div>
+                    <div class="label">{% translate "Surveyed" %}</div>
+                    <div class="value count-up" data-target="{{ stats.total_distance|floatformat:1 }}" data-suffix=" {% translate "km" %}" data-decimals="1">0.0 {% translate "km" %}</div>
                 </div>
                 <div class="mini-stat">
-                    <div class="label">Network PCI</div>
+                    <div class="label">{% translate "Network PCI" %}</div>
                     <div class="value count-up" data-target="{% if stats.avg_pci %}{{ stats.avg_pci }}{% else %}0{% endif %}" data-suffix="" data-decimals="0" style="color:{% if stats.avg_pci >= 85 %}#22c55e{% elif stats.avg_pci >= 70 %}#84cc16{% elif stats.avg_pci >= 55 %}#eab308{% elif stats.avg_pci %}#ef4444{% else %}var(--panel-text-muted){% endif %};">{% if stats.avg_pci %}0{% else %}—{% endif %}</div>
                 </div>
                 <div class="mini-stat">
-                    <div class="label">Defects</div>
+                    <div class="label">{% translate "Defects" %}</div>
                     <div class="value count-up" data-target="{{ stats.total_defects }}" data-suffix="" data-decimals="0" style="color:#f97316;">0</div>
                 </div>
                 <div class="mini-stat">
-                    <div class="label">Sessions</div>
+                    <div class="label">{% translate "Sessions" %}</div>
                     <div class="value count-up" data-target="{{ stats.total_sessions }}" data-suffix="" data-decimals="0">0</div>
                 </div>
             </div>
 
             <div class="panel-upload">
                 <button class="upload-btn" onclick="document.getElementById('uploadOverlay').classList.add('show');">
-                    <i class="fa fa-cloud-upload-alt"></i> Upload session (.zip)
+                    <i class="fa fa-cloud-upload-alt"></i> {% translate "Upload session (.zip)" %}
                 </button>
             </div>
 
             <!-- Search box -->
             <div style="padding:8px 18px;border-bottom:1px solid var(--panel-border);flex-shrink:0;">
-                <input type="text" id="roadSearchInput" placeholder="Search road name..."
+                <input type="text" id="roadSearchInput" placeholder="{% translate 'Search road name...' %}"
                        onkeyup="searchRoadName(this.value)"
                        style="width:100%;background:var(--panel-stat-bg);border:1px solid var(--panel-border);color:var(--panel-text);padding:8px 12px;border-radius:8px;font-size:0.78rem;font-family:inherit;outline:none;box-sizing:border-box;"
                        onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor=''" />
@@ -357,25 +358,25 @@
             <div style="padding:6px 18px;border-bottom:1px solid var(--panel-border);flex-shrink:0;display:flex;align-items:center;gap:6px;">
                 <select id="timeFilter" onchange="filterByTime(this.value)"
                         style="flex:1;background:var(--panel-stat-bg);border:1px solid var(--panel-border);color:var(--panel-text);padding:4px 8px;border-radius:6px;font-size:0.72rem;font-family:inherit;">
-                    <option value="all" selected>All surveys</option>
-                    <option value="latest">Latest per road</option>
+                    <option value="all" selected>{% translate "All surveys" %}</option>
+                    <option value="latest">{% translate "Latest per road" %}</option>
                     <option value="2025">2025</option>
                     <option value="2024">2024</option>
                 </select>
                 <select id="sortFilter" onchange="sortSessions(this.value)"
                         style="flex:1;background:var(--panel-stat-bg);border:1px solid var(--panel-border);color:var(--panel-text);padding:4px 8px;border-radius:6px;font-size:0.72rem;font-family:inherit;">
-                    <option value="date" selected>Newest first</option>
-                    <option value="pci_asc">Worst PCI first</option>
-                    <option value="pci_desc">Best PCI first</option>
-                    <option value="defects">Most defects</option>
+                    <option value="date" selected>{% translate "Newest first" %}</option>
+                    <option value="pci_asc">{% translate "Worst PCI first" %}</option>
+                    <option value="pci_desc">{% translate "Best PCI first" %}</option>
+                    <option value="defects">{% translate "Most defects" %}</option>
                 </select>
             </div>
 
             <div class="selection-bar" id="selectionBar">
-                <span class="sel-info"><strong id="selCount">0</strong> selected</span>
+                <span class="sel-info">{% translate "Selected:" %} <strong id="selCount">0</strong></span>
                 <div style="display:flex;gap:6px;">
-                    <button class="sel-clear" onclick="viewSelectedSessions()" style="background:#3b82f6;color:#fff;border-color:#3b82f6;"><i class="fa fa-eye" style="margin-right:4px;"></i>View</button>
-                    <button class="sel-clear" onclick="clearSelection()">Clear</button>
+                    <button class="sel-clear" onclick="viewSelectedSessions()" style="background:#3b82f6;color:#fff;border-color:#3b82f6;"><i class="fa fa-eye" style="margin-right:4px;"></i>{% translate "View" %}</button>
+                    <button class="sel-clear" onclick="clearSelection()">{% translate "Clear" %}</button>
                 </div>
             </div>
             <div class="session-list">
@@ -393,13 +394,13 @@
                         <div class="name">{{ s.display_name }}</div>
                         <div class="meta">
                             <span class="pv pci-{{ s.condition_rating }}">PCI {{ s.avg_pci|floatformat:0 }}</span>
-                            <span>{{ s.distance_km|floatformat:1 }} km</span>
-                            <span>{{ s.total_defects }} defects</span>
+                            <span>{{ s.distance_km|floatformat:1 }} {% translate "km" %}</span>
+                            <span>{% blocktranslate count counter=s.total_defects %}{{ counter }} defect{% plural %}{{ counter }} defects{% endblocktranslate %}</span>
                         </div>
                         <div class="dt">{{ s.session_id }} · {{ s.created_at|date:"M d, Y" }}</div>
                         <div class="acts">
-                            <a class="ab v" href="{% url 'sessions:detail' s.pk %}" onclick="event.stopPropagation();"><i class="fa fa-expand"></i> Detail</a>
-                            <form method="post" action="{% url 'sessions:delete' s.pk %}" style="display:inline;" onsubmit="return confirm('Delete this session?');">{% csrf_token %}
+                            <a class="ab v" href="{% url 'sessions:detail' s.pk %}" onclick="event.stopPropagation();"><i class="fa fa-expand"></i> {% translate "Detail" %}</a>
+                            <form method="post" action="{% url 'sessions:delete' s.pk %}" style="display:inline;" onsubmit="return confirm('{{ _("Delete this session?")|escapejs }}');">{% csrf_token %}
                                 <button type="submit" class="ab d" onclick="event.stopPropagation();"><i class="fa fa-trash"></i></button>
                             </form>
                         </div>
@@ -408,8 +409,8 @@
                 {% empty %}
                 <div class="empty-state">
                     <i class="fa fa-satellite-dish"></i>
-                    <p><strong>No sessions yet</strong></p>
-                    <p style="margin-top:4px;font-size:0.75rem;">Upload your first inspection</p>
+                    <p><strong>{% translate "No sessions yet" %}</strong></p>
+                    <p style="margin-top:4px;font-size:0.75rem;">{% translate "Upload your first inspection" %}</p>
                 </div>
                 {% endfor %}
             </div>
@@ -419,11 +420,11 @@
         <div class="panel-view" id="viewDetail">
             <div class="detail-header">
                 <button class="back-btn" onclick="closeSessionDetail()"><i class="fa fa-arrow-left"></i></button>
-                <span class="session-name" id="detailName" onclick="startRenameSession()" title="Click to rename"></span>
+                <span class="session-name" id="detailName" onclick="startRenameSession()" title="{% translate 'Click to rename' %}"></span>
                 <div class="detail-actions">
                     <span id="detailDate" style="font-size:0.62rem;color:var(--panel-text-muted);"></span>
-                    <a id="detailOpenLink" href="#" style="background:#3b82f6;color:#fff;border-radius:5px;padding:3px 8px;font-size:0.68rem;font-weight:600;text-decoration:none;"><i class="fa fa-expand" style="margin-right:3px;"></i>Full View</a>
-                    <a id="detailPdfLink" href="#" style="color:#60a5fa;font-size:0.68rem;" title="PDF Report"><i class="fa fa-file-pdf"></i></a>
+                    <a id="detailOpenLink" href="#" style="background:#3b82f6;color:#fff;border-radius:5px;padding:3px 8px;font-size:0.68rem;font-weight:600;text-decoration:none;"><i class="fa fa-expand" style="margin-right:3px;"></i>{% translate "Full View" %}</a>
+                    <a id="detailPdfLink" href="#" style="color:#60a5fa;font-size:0.68rem;" title="{% translate 'PDF Report' %}"><i class="fa fa-file-pdf"></i></a>
                 </div>
             </div>
             <div class="detail-stats" id="detailStats"></div>
@@ -437,19 +438,19 @@
         <button class="panel-toggle" id="panelToggle"><i class="fa fa-bars"></i></button>
         <div id="networkMap"></div>
         <div class="map-legend">
-            <div class="legend-item"><div class="legend-line" style="background:#22c55e;"></div><span class="legend-label">Good</span></div>
-            <div class="legend-item"><div class="legend-line" style="background:#84cc16;"></div><span class="legend-label">Satisfactory</span></div>
-            <div class="legend-item"><div class="legend-line" style="background:#eab308;"></div><span class="legend-label">Fair</span></div>
-            <div class="legend-item"><div class="legend-line" style="background:#ea580c;"></div><span class="legend-label">Poor</span></div>
-            <div class="legend-item"><div class="legend-line" style="background:#ef4444;"></div><span class="legend-label">Very Poor</span></div>
-            <div class="legend-item"><div class="legend-line" style="background:#7f1d1d;"></div><span class="legend-label">Failed</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#22c55e;"></div><span class="legend-label">{% translate "Good" %}</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#84cc16;"></div><span class="legend-label">{% translate "Satisfactory" %}</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#eab308;"></div><span class="legend-label">{% translate "Fair" %}</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#ea580c;"></div><span class="legend-label">{% translate "Poor" %}</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#ef4444;"></div><span class="legend-label">{% translate "Very Poor" %}</span></div>
+            <div class="legend-item"><div class="legend-line" style="background:#7f1d1d;"></div><span class="legend-label">{% translate "Failed" context "pavement condition" %}</span></div>
         </div>
     </div>
 
     <div class="upload-overlay" id="uploadOverlay">
         <div class="upload-modal">
             <div class="upload-modal-hd">
-                <span><i class="fa fa-cloud-upload-alt" style="margin-right:8px;"></i> Upload Session</span>
+                <span><i class="fa fa-cloud-upload-alt" style="margin-right:8px;"></i> {% translate "Upload Session" %}</span>
                 <button onclick="document.getElementById('uploadOverlay').classList.remove('show');">&times;</button>
             </div>
             <div class="upload-modal-bd">
@@ -457,16 +458,16 @@
                     {% csrf_token %}
                     <div class="upload-drop" id="dropZone" onclick="document.getElementById('zipInput').click();">
                         <i class="fa fa-file-archive"></i>
-                        <p><strong>Drop .zip files here or click to browse</strong></p>
-                        <p style="font-size:0.72rem;color:#94a3b8;margin-top:4px;">Multiple files allowed — each zip: metadata.json + detections.jsonl + gps_track.jsonl</p>
+                        <p><strong>{% translate "Drop .zip files here or click to browse" %}</strong></p>
+                        <p style="font-size:0.72rem;color:#94a3b8;margin-top:4px;">{% translate "Multiple files allowed — each zip: metadata.json + detections.jsonl + gps_track.jsonl" %}</p>
                         <input type="file" name="session_zip" id="zipInput" accept=".zip" multiple style="display:none;"
                                onchange="showUploadLoading();document.getElementById('uploadForm').submit();">
                     </div>
                 </form>
                 <div class="upload-loading" id="uploadLoading">
                     <div class="upload-spinner"></div>
-                    <p>Uploading...</p>
-                    <p class="sub">Processing session...</p>
+                    <p>{% translate "Uploading..." %}</p>
+                    <p class="sub">{% translate "Processing session..." %}</p>
                 </div>
             </div>
         </div>
@@ -795,18 +796,18 @@ function viewSelectedSessions() {
     var pciColor = pciVal >= 85 ? '#22c55e' : pciVal >= 70 ? '#84cc16' : pciVal >= 55 ? '#eab308' : pciVal >= 40 ? '#ea580c' : '#ef4444';
 
     // Header
-    document.getElementById('detailName').textContent = sids.length + ' Sessions Selected';
+    document.getElementById('detailName').textContent = fmt('{{ _("Sessions selected: %(count)s")|escapejs }}', {count: sids.length});
     document.getElementById('detailDate').textContent = '';
     document.getElementById('detailOpenLink').href = '/sessions/review/?ids=' + sids.join(',');
-    document.getElementById('detailOpenLink').innerHTML = '<i class="fa fa-expand" style="margin-right:3px;"></i>Review All';
+    document.getElementById('detailOpenLink').innerHTML = '<i class="fa fa-expand" style="margin-right:3px;"></i>{{ _("Review All")|escapejs }}';
     document.getElementById('detailOpenLink').style.display = '';
     document.getElementById('detailPdfLink').style.display = 'none';
 
     // Stats
     document.getElementById('detailStats').innerHTML =
-        '<div class="ds"><div class="dl">Avg PCI</div><div class="dv" style="color:' + pciColor + '">' + avgPci + '</div></div>' +
-        '<div class="ds"><div class="dl">Distance</div><div class="dv">' + totalDist.toFixed(1) + ' km</div></div>' +
-        '<div class="ds"><div class="dl">Defects</div><div class="dv" style="color:#f97316">' + totalDefs + '</div></div>';
+        '<div class="ds"><div class="dl">{{ _("Avg PCI")|escapejs }}</div><div class="dv" style="color:' + pciColor + '">' + avgPci + '</div></div>' +
+        '<div class="ds"><div class="dl">{{ _("Distance")|escapejs }}</div><div class="dv">' + totalDist.toFixed(1) + ' {{ _("km")|escapejs }}</div></div>' +
+        '<div class="ds"><div class="dl">{{ _("Defects")|escapejs }}</div><div class="dv" style="color:#f97316">' + totalDefs + '</div></div>';
 
     // Highlight on map
     Object.keys(sLayers).forEach(function(k) {
@@ -816,7 +817,7 @@ function viewSelectedSessions() {
 
     // Show report download + filter bar
     document.getElementById('detFilterBar').innerHTML =
-        '<a href="/sessions/review/report.pdf?ids=' + sids.join(',') + '" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;background:#3b82f6;color:#fff;border-radius:6px;font-size:0.72rem;font-weight:600;text-decoration:none;"><i class="fa fa-file-pdf"></i> PDF Report</a>';
+        '<a href="/sessions/review/report.pdf?ids=' + sids.join(',') + '" style="width:100%;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;background:#3b82f6;color:#fff;border-radius:6px;font-size:0.72rem;font-weight:600;text-decoration:none;"><i class="fa fa-file-pdf"></i> {{ _("PDF Report")|escapejs }}</a>';
 
     var listHtml = '';
     sids.forEach(function(sid) {
@@ -831,13 +832,13 @@ function viewSelectedSessions() {
             '</div>' +
             '<div style="display:flex;align-items:center;gap:8px;font-size:0.65rem;color:var(--panel-text-muted);">' +
                 '<span>' + card.dataset.date + '</span>' +
-                '<span>' + card.dataset.dist + ' km</span>' +
-                '<span>' + card.dataset.defects + ' defects</span>' +
+                '<span>' + card.dataset.dist + ' {{ _("km")|escapejs }}</span>' +
+                '<span>' + fmt('{{ _("Defects: %(count)s")|escapejs }}', {count: card.dataset.defects}) + '</span>' +
             '</div>' +
             '<div style="display:flex;gap:6px;margin-top:2px;">' +
-                '<a href="' + card.dataset.url + '" style="flex:1;text-align:center;padding:5px;background:#3b82f6;color:#fff;border-radius:5px;font-size:0.7rem;font-weight:600;text-decoration:none;"><i class="fa fa-eye" style="margin-right:4px;"></i>Detail & Review</a>' +
-                '<a href="/sessions/' + sid + '/report.pdf" style="padding:5px 10px;background:var(--panel-stat-bg);color:#60a5fa;border-radius:5px;font-size:0.7rem;text-decoration:none;" title="PDF Report"><i class="fa fa-file-pdf"></i></a>' +
-                '<button onclick="event.stopPropagation();openSessionDetail(' + sid + ');" style="padding:5px 10px;background:var(--panel-stat-bg);color:var(--panel-text-secondary);border:none;border-radius:5px;font-size:0.7rem;cursor:pointer;" title="Quick view"><i class="fa fa-map-marker-alt"></i></button>' +
+                '<a href="' + card.dataset.url + '" style="flex:1;text-align:center;padding:5px;background:#3b82f6;color:#fff;border-radius:5px;font-size:0.7rem;font-weight:600;text-decoration:none;"><i class="fa fa-eye" style="margin-right:4px;"></i>{{ _("Detail & Review")|escapejs }}</a>' +
+                '<a href="/sessions/' + sid + '/report.pdf" style="padding:5px 10px;background:var(--panel-stat-bg);color:#60a5fa;border-radius:5px;font-size:0.7rem;text-decoration:none;" title="{{ _("PDF Report")|escapejs }}"><i class="fa fa-file-pdf"></i></a>' +
+                '<button onclick="event.stopPropagation();openSessionDetail(' + sid + ');" style="padding:5px 10px;background:var(--panel-stat-bg);color:var(--panel-text-secondary);border:none;border-radius:5px;font-size:0.7rem;cursor:pointer;" title="{{ _("Quick view")|escapejs }}"><i class="fa fa-map-marker-alt"></i></button>' +
             '</div>' +
         '</div>';
     });
@@ -861,7 +862,7 @@ function openSessionDetail(sid, focusDetId) {
     document.getElementById('detailName').textContent = card.dataset.name;
     document.getElementById('detailDate').textContent = card.dataset.date;
     document.getElementById('detailOpenLink').href = card.dataset.url;
-    document.getElementById('detailOpenLink').innerHTML = '<i class="fa fa-expand" style="margin-right:3px;"></i>Full View';
+    document.getElementById('detailOpenLink').innerHTML = '<i class="fa fa-expand" style="margin-right:3px;"></i>{{ _("Full View")|escapejs }}';
     document.getElementById('detailOpenLink').style.display = '';
     document.getElementById('detailPdfLink').href = '/sessions/' + sid + '/report.pdf';
     document.getElementById('detailPdfLink').style.display = '';
@@ -871,8 +872,8 @@ function openSessionDetail(sid, focusDetId) {
     var pciColor = pci >= 85 ? '#22c55e' : pci >= 70 ? '#84cc16' : pci >= 55 ? '#eab308' : pci >= 40 ? '#ea580c' : '#ef4444';
     document.getElementById('detailStats').innerHTML =
         '<div class="ds"><div class="dl">PCI</div><div class="dv" style="color:' + pciColor + '">' + card.dataset.pci + '</div></div>' +
-        '<div class="ds"><div class="dl">Distance</div><div class="dv">' + card.dataset.dist + ' km</div></div>' +
-        '<div class="ds"><div class="dl">Defects</div><div class="dv" style="color:#f97316">' + card.dataset.defects + '</div></div>';
+        '<div class="ds"><div class="dl">{{ _("Distance")|escapejs }}</div><div class="dv">' + card.dataset.dist + ' {{ _("km")|escapejs }}</div></div>' +
+        '<div class="ds"><div class="dl">{{ _("Defects")|escapejs }}</div><div class="dv" style="color:#f97316">' + card.dataset.defects + '</div></div>';
 
     // Highlight on map
     hl(sid);
@@ -917,7 +918,7 @@ function buildSessionDets(sids) {
     // Build filter chips
     var types = {};
     sessionDets.forEach(function(d) { types[d.raw_type] = d.type; });
-    var filterHtml = '<button class="det-chip active" onclick="filterSessionDets(\'all\',this)">All (' + sessionDets.length + ')</button>';
+    var filterHtml = '<button class="det-chip active" onclick="filterSessionDets(\'all\',this)">{{ _("All")|escapejs }} (' + sessionDets.length + ')</button>';
     Object.keys(types).forEach(function(raw) {
         var count = sessionDets.filter(function(d) { return d.raw_type === raw; }).length;
         filterHtml += '<button class="det-chip" onclick="filterSessionDets(\'' + raw + '\',this)">' + types[raw] + ' (' + count + ')</button>';
@@ -964,7 +965,7 @@ function startRenameSession() {
     inp.type = 'text';
     inp.value = currentName;
     var btn = document.createElement('button');
-    btn.textContent = 'Save';
+    btn.textContent = '{{ _("Save")|escapejs }}';
     wrap.appendChild(inp);
     wrap.appendChild(btn);
     nameEl.style.display = 'none';
@@ -1001,10 +1002,10 @@ function submitRename(newName) {
             var nameDiv = card.querySelector('.name');
             if (nameDiv) nameDiv.textContent = displayName;
         }
-        showToast('Road name saved', 'success');
+        showToast('{{ _("Road name saved")|escapejs }}', 'success');
     }).catch(function(err) {
         console.error('Rename failed:', err);
-        showToast('Rename failed', 'error');
+        showToast('{{ _("Rename failed")|escapejs }}', 'error');
     });
 }
 
@@ -1029,11 +1030,11 @@ function renderDetList() {
             '<div class="sev-dot" style="background:' + clr + '"></div>' +
             '<div class="det-info">' +
                 '<div class="det-name">' + d.type + '</div>' +
-                '<div class="det-sub">' + d.distance_km.toFixed(2) + ' km · ' + d.severity + ' · ' + Math.round(d.confidence * 100) + '%</div>' +
+                '<div class="det-sub">' + d.distance_km.toFixed(2) + ' {{ _("km")|escapejs }} · ' + trSeverity(d.severity) + ' · ' + Math.round(d.confidence * 100) + '%</div>' +
             '</div>' +
         '</div>';
     });
-    if (!html) html = '<div style="text-align:center;padding:20px;color:var(--panel-text-faint);font-size:0.75rem;">No detections</div>';
+    if (!html) html = '<div style="text-align:center;padding:20px;color:var(--panel-text-faint);font-size:0.75rem;">{{ _("No detections")|escapejs }}</div>';
     document.getElementById('detListPanel').innerHTML = html;
 }
 
@@ -1084,14 +1085,14 @@ function showDetPopup(visible, idx) {
         '<div class="det-popup-body">' +
             '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
                 '<span style="font-weight:700;font-size:0.85rem;">' + det.type + '</span>' +
-                '<span style="background:' + sevColor + ';color:#fff;padding:1px 8px;border-radius:10px;font-size:0.6rem;font-weight:600;">' + det.severity + '</span>' +
+                '<span style="background:' + sevColor + ';color:#fff;padding:1px 8px;border-radius:10px;font-size:0.6rem;font-weight:600;">' + trSeverity(det.severity) + '</span>' +
             '</div>' +
-            '<div style="font-size:0.72rem;color:#94a3b8;">Confidence: ' + Math.round(det.confidence*100) + '% &middot; ' + det.distance_km.toFixed(2) + ' km</div>' +
+            '<div style="font-size:0.72rem;color:#94a3b8;">{{ _("Confidence:")|escapejs }} ' + Math.round(det.confidence*100) + '% &middot; ' + det.distance_km.toFixed(2) + ' {{ _("km")|escapejs }}</div>' +
         '</div>' +
         '<div class="det-popup-nav">' +
-            '<button class="prev-btn" ' + (idx === 0 ? 'disabled' : '') + '><i class="fa fa-arrow-left"></i> Prev</button>' +
+            '<button class="prev-btn" ' + (idx === 0 ? 'disabled' : '') + '><i class="fa fa-arrow-left"></i> {{ _("Prev")|escapejs }}</button>' +
             '<span class="nav-counter">' + (idx + 1) + ' / ' + total + '</span>' +
-            '<button class="next-btn" ' + (idx === total - 1 ? 'disabled' : '') + '>Next <i class="fa fa-arrow-right"></i></button>' +
+            '<button class="next-btn" ' + (idx === total - 1 ? 'disabled' : '') + '>{{ _("Next")|escapejs }} <i class="fa fa-arrow-right"></i></button>' +
         '</div>';
 
     var prevBtn = container.querySelector('.prev-btn');
@@ -1102,10 +1103,10 @@ function showDetPopup(visible, idx) {
     var zoomBtn = container.querySelector('.det-popup-zoom');
     var imgWrap = container.querySelector('.det-popup-imgwrap');
     if (zoomBtn && det.thumbnail) {
-        zoomBtn.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(det.thumbnail, det.type + ' · ' + det.severity); });
+        zoomBtn.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(det.thumbnail, det.type + ' · ' + trSeverity(det.severity)); });
     }
     if (imgWrap && det.thumbnail) {
-        imgWrap.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(det.thumbnail, det.type + ' · ' + det.severity); });
+        imgWrap.addEventListener('click', function(e) { e.stopPropagation(); openLightbox(det.thumbnail, det.type + ' · ' + trSeverity(det.severity)); });
     }
 
     detPopup.setLatLng([det.lat, det.lon]).setContent(container).openOn(map);
@@ -1173,7 +1174,7 @@ map.on('click', function(e) {
         setTimeout(function() { map.fitBounds(newBounds, { padding: [50, 50], maxZoom: 15, animate: true }); }, 500);
     }
     // Show toast
-    showToast(ids.length + ' session' + (ids.length > 1 ? 's' : '') + ' uploaded successfully', 'success');
+    showToast(fmt('{{ _("Sessions uploaded successfully: %(count)s")|escapejs }}', {count: ids.length}), 'success');
     // Clean URL
     window.history.replaceState({}, '', window.location.pathname);
     // Remove highlight after 6 seconds

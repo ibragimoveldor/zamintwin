@@ -1,3 +1,4 @@
+from django.utils.translation import gettext_lazy as _
 from django import forms
 from .models import Project, ProjectImage
 
@@ -5,7 +6,7 @@ from .models import Project, ProjectImage
 class ProjectCreateForm(forms.ModelForm):
     name = forms.CharField(
         widget=forms.TextInput(attrs={"class": "form-control"}),
-        label="Project Name",
+        label=_("Project Name"),
         required=True,
     )
     lat = forms.CharField(widget=forms.HiddenInput(), required=False)
@@ -22,7 +23,7 @@ class ProjectCreateForm(forms.ModelForm):
     def clean_name(self):
         name = self.cleaned_data["name"]
         if self.user and Project.objects.filter(user=self.user, name=name).exists():
-            raise forms.ValidationError("Project name already exists")
+            raise forms.ValidationError(_("Project name already exists"))
         return name
 
 

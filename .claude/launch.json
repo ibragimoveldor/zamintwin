@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "django",
+      "runtimeExecutable": "pci_web/.venv/bin/python",
+      "runtimeArgs": ["pci_web/manage.py", "runserver", "8010"],
+      "port": 8010
+    }
+  ]
+}

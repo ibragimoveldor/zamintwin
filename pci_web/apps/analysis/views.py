@@ -7,6 +7,7 @@ from collections import Counter
 from datetime import datetime
 
 import pandas as pd
+from django.utils.translation import gettext as _, ngettext
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import FileResponse, HttpResponse, JsonResponse
@@ -14,6 +15,8 @@ from django.conf import settings
 from django.urls import reverse
 
 from apps.projects.models import Project
+from apps.sessions.pdf_fonts import BOLD_FONT, REGULAR_FONT, unicode_stylesheet
+from apps.sessions.templatetags.condition_labels import pavement_condition_label
 from .models import PCIResult
 
 logger = logging.getLogger(__name__)
@@ -219,7 +222,7 @@ def download_csv(request, project_id):
     csv_path = os.path.join(project.pci_dir, "pci100_final.csv")
 
     if not os.path.exists(csv_path):
-        return HttpResponse("Results not available yet.", status=404)
+        return HttpResponse(_("Results not available yet."), status=404)
 
     response = FileResponse(
         open(csv_path, "rb"),
@@ -246,7 +249,7 @@ def export_pdf(request, project_id):
     results = list(project.pci_results.all())
 
     if not results:
-        return HttpResponse("No results available for PDF export.", status=404)
+        return HttpResponse(_("No results available for PDF export."), status=404)
 
     try:
         from reportlab.lib.pagesizes import A4
@@ -263,7 +266,7 @@ def export_pdf(request, project_id):
         from reportlab.graphics import renderPDF
     except ImportError:
         return HttpResponse(
-            "reportlab is not installed. Run: pip install reportlab",
+            _("reportlab is not installed. Run: pip install reportlab"),
             status=500,
         )
 
@@ -275,12 +278,12 @@ def export_pdf(request, project_id):
     )
     width, height = A4
     story = []
-    styles = getSampleStyleSheet()
+    styles = unicode_stylesheet()
 
     # Custom styles
     title_style = ParagraphStyle(
         'CustomTitle', parent=styles['Title'],
-        fontSize=22, spaceAfter=6, textColor=HexColor('#0f172a'),
+        fontSize=22, leading=28, spaceAfter=6, textColor=HexColor('#0f172a'),
     )
     subtitle_style = ParagraphStyle(
         'Subtitle', parent=styles['Normal'],
@@ -299,14 +302,24 @@ def export_pdf(request, project_id):
         'Small', parent=styles['Normal'],
         fontSize=7.5, leading=10, textColor=HexColor('#64748b'),
     )
+    table_header_style = ParagraphStyle(
+        'TableHeader', parent=styles['Normal'],
+        fontName=BOLD_FONT, fontSize=6.5, leading=8,
+    )
+
+    def header_cells(labels, color='#0f172a'):
+        style = ParagraphStyle('TableHeaderColored', parent=table_header_style, textColor=HexColor(color))
+        return [Paragraph(label, style) for label in labels]
 
     # ===== PAGE 1: TITLE + SUMMARY =====
     story.append(Spacer(1, 10*mm))
-    story.append(Paragraph("PCI Assessment Report", title_style))
+    story.append(Paragraph(_("PCI Assessment Report"), title_style))
     story.append(Paragraph(
-        f"Project: {project.name} &nbsp;|&nbsp; "
-        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')} &nbsp;|&nbsp; "
-        f"User: {request.user.username}",
+        _("Project: %(project)s &nbsp;|&nbsp; Generated: %(generated)s &nbsp;|&nbsp; User: %(user)s") % {
+            "project": project.name,
+            "generated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "user": request.user.username,
+        },
         subtitle_style,
     ))
 
@@ -334,18 +347,20 @@ def export_pdf(request, project_id):
     else:
         cond_label = "Serious / Failed"
 
-    story.append(Paragraph("Executive Summary", heading_style))
+    story.append(Paragraph(_("Executive Summary"), heading_style))
 
     summary_data = [
-        ["Total Length", f"{total_km:.2f} km ({total_tiles} tiles × 10m)"],
-        ["Average PCI", f"{avg_pci:.1f}% — {cond_label}"],
-        ["Damaged Sections", f"{damaged} of {total_tiles} ({damage_pct:.1f}%)"],
-        ["Undamaged Sections", f"{total_tiles - damaged} of {total_tiles}"],
+        [_("Total Length"), _("%(km)s km (%(tiles)s tiles × 10m)") % {"km": f"{total_km:.2f}", "tiles": total_tiles}],
+        [_("Average PCI"), f"{avg_pci:.1f}% — {pavement_condition_label(cond_label)}"],
+        [_("Damaged Sections"), _("%(count)s of %(total)s (%(percent)s%%)") % {
+            "count": damaged, "total": total_tiles, "percent": f"{damage_pct:.1f}",
+        }],
+        [_("Undamaged Sections"), _("%(count)s of %(total)s") % {"count": total_tiles - damaged, "total": total_tiles}],
     ]
-    summary_table = Table(summary_data, colWidths=[45*mm, 110*mm])
+    summary_table = Table(summary_data, colWidths=[55*mm, 100*mm])
     summary_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+        ('FONTNAME', (0, 0), (0, -1), BOLD_FONT),
+        ('FONTNAME', (1, 0), (1, -1), REGULAR_FONT),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('TEXTCOLOR', (0, 0), (0, -1), HexColor('#334155')),
         ('TEXTCOLOR', (1, 0), (1, -1), HexColor('#0f172a')),
@@ -358,7 +373,7 @@ def export_pdf(request, project_id):
     story.append(Spacer(1, 8*mm))
 
     # Condition distribution table
-    story.append(Paragraph("Condition Distribution", heading_style))
+    story.append(Paragraph(_("Condition Distribution"), heading_style))
 
     cond_counts = Counter(r.pavement_condition for r in results)
     cond_order = [
@@ -372,19 +387,19 @@ def export_pdf(request, project_id):
         'Serious': '#dc2626', 'Failed': '#991b1b',
     }
 
-    dist_header = ["Condition", "Count", "Percentage", ""]
+    dist_header = [_("Condition"), _("Count"), _("Percentage"), ""]
     dist_rows = [dist_header]
     for c in cond_order:
         cnt = cond_counts.get(c, 0)
         if cnt > 0:
             pct = cnt / total_tiles * 100
             bar = "█" * max(1, int(pct / 2))
-            dist_rows.append([c, str(cnt), f"{pct:.1f}%", bar])
+            dist_rows.append([str(pavement_condition_label(c)), str(cnt), f"{pct:.1f}%", bar])
 
-    dist_table = Table(dist_rows, colWidths=[40*mm, 20*mm, 25*mm, 70*mm])
+    dist_table = Table(dist_rows, colWidths=[42*mm, 28*mm, 22*mm, 63*mm])
     dist_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTNAME', (0, 0), (-1, 0), BOLD_FONT),
+        ('FONTNAME', (0, 1), (-1, -1), REGULAR_FONT),
         ('FONTSIZE', (0, 0), (-1, -1), 8.5),
         ('BACKGROUND', (0, 0), (-1, 0), HexColor('#f1f5f9')),
         ('TEXTCOLOR', (0, 0), (-1, 0), HexColor('#334155')),
@@ -397,7 +412,7 @@ def export_pdf(request, project_id):
     # Color the bar column per condition
     for i, c in enumerate(cond_order):
         if cond_counts.get(c, 0) > 0:
-            row_idx = [r[0] for r in dist_rows].index(c)
+            row_idx = [r[0] for r in dist_rows].index(str(pavement_condition_label(c)))
             dist_table.setStyle(TableStyle([
                 ('TEXTCOLOR', (3, row_idx), (3, row_idx), HexColor(cond_colors[c])),
             ]))
@@ -405,23 +420,23 @@ def export_pdf(request, project_id):
     story.append(Spacer(1, 8*mm))
 
     # Defect type summary
-    story.append(Paragraph("Defect Type Summary", heading_style))
+    story.append(Paragraph(_("Defect Type Summary"), heading_style))
     crack_count = sum(1 for r in results if r.crack_length > 0)
     alr_count = sum(1 for r in results if r.alligator_area > 0)
     patch_count = sum(1 for r in results if r.patching_area > 0)
     pot_count = sum(1 for r in results if r.pothole_area > 0)
 
     defect_data = [
-        ["Defect Type", "Sections Affected", "Percentage"],
-        ["Longitudinal/Transverse Cracks", str(crack_count), f"{crack_count/total_tiles*100:.1f}%"],
-        ["Alligator Cracking", str(alr_count), f"{alr_count/total_tiles*100:.1f}%"],
-        ["Patching", str(patch_count), f"{patch_count/total_tiles*100:.1f}%"],
-        ["Potholes", str(pot_count), f"{pot_count/total_tiles*100:.1f}%"],
+        [_("Defect Type"), _("Sections Affected"), _("Percentage")],
+        [_("Longitudinal/Transverse Cracks"), str(crack_count), f"{crack_count/total_tiles*100:.1f}%"],
+        [_("Alligator Cracking"), str(alr_count), f"{alr_count/total_tiles*100:.1f}%"],
+        [_("Patching"), str(patch_count), f"{patch_count/total_tiles*100:.1f}%"],
+        [_("Potholes"), str(pot_count), f"{pot_count/total_tiles*100:.1f}%"],
     ]
     defect_table = Table(defect_data, colWidths=[60*mm, 40*mm, 30*mm])
     defect_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTNAME', (0, 0), (-1, 0), BOLD_FONT),
+        ('FONTNAME', (0, 1), (-1, -1), REGULAR_FONT),
         ('FONTSIZE', (0, 0), (-1, -1), 8.5),
         ('BACKGROUND', (0, 0), (-1, 0), HexColor('#f1f5f9')),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
@@ -434,32 +449,32 @@ def export_pdf(request, project_id):
 
     # ===== PAGE 2: WORST SECTIONS + FULL TABLE =====
     story.append(PageBreak())
-    story.append(Paragraph("Critical Sections (Worst PCI Scores)", heading_style))
+    story.append(Paragraph(_("Critical Sections (Worst PCI Scores)"), heading_style))
     story.append(Paragraph(
-        "The following sections have the lowest PCI scores and require priority attention.",
+        _("The following sections have the lowest PCI scores and require priority attention."),
         body_style,
     ))
     story.append(Spacer(1, 4*mm))
 
     worst = sorted(results, key=lambda r: r.pci_rating)[:15]
-    worst_header = ["#", "Section", "PCI (%)", "Condition", "Crack (m)", "Alligator", "Patching", "Pothole"]
+    worst_header = header_cells(["#", _("Section"), _("PCI (%)"), _("Condition"), _("Crack (m)"), _("Alligator"), _("Patching"), _("Pothole")], "#991b1b")
     worst_rows = [worst_header]
     for i, r in enumerate(worst, 1):
         worst_rows.append([
             str(i),
             r.image_name[:30] + "..." if len(r.image_name) > 30 else r.image_name,
             f"{r.pci_rating:.1f}",
-            r.pavement_condition,
+            str(pavement_condition_label(r.pavement_condition)),
             f"{r.crack_length:.2f}" if r.crack_length > 0 else "—",
             f"{r.alligator_area:.2f}" if r.alligator_area > 0 else "—",
             f"{r.patching_area:.2f}" if r.patching_area > 0 else "—",
             f"{r.pothole_area:.2f}" if r.pothole_area > 0 else "—",
         ])
 
-    worst_table = Table(worst_rows, colWidths=[8*mm, 45*mm, 15*mm, 25*mm, 18*mm, 18*mm, 18*mm, 18*mm])
+    worst_table = Table(worst_rows, colWidths=[8*mm, 36*mm, 14*mm, 32*mm, 19*mm, 19*mm, 19*mm, 18*mm])
     worst_style = [
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTNAME', (0, 0), (-1, 0), BOLD_FONT),
+        ('FONTNAME', (0, 1), (-1, -1), REGULAR_FONT),
         ('FONTSIZE', (0, 0), (-1, -1), 7),
         ('BACKGROUND', (0, 0), (-1, 0), HexColor('#fef2f2')),
         ('TEXTCOLOR', (0, 0), (-1, 0), HexColor('#991b1b')),
@@ -479,31 +494,35 @@ def export_pdf(request, project_id):
 
     # ===== PAGE 3+: FULL RESULTS TABLE =====
     story.append(PageBreak())
-    story.append(Paragraph("Complete Section Results", heading_style))
+    story.append(Paragraph(_("Complete Section Results"), heading_style))
     story.append(Paragraph(
-        f"All {total_tiles} sections listed by sequence order.",
+        ngettext(
+            "All %(count)d section listed by sequence order.",
+            "All %(count)d sections listed by sequence order.",
+            total_tiles,
+        ) % {"count": total_tiles},
         small_style,
     ))
     story.append(Spacer(1, 3*mm))
 
-    full_header = ["#", "Section Name", "PCI", "Condition", "Crack", "Alligator", "Patching", "Pothole"]
+    full_header = header_cells(["#", _("Section Name"), "PCI", _("Condition"), _("Crack"), _("Alligator"), _("Patching"), _("Pothole")])
     full_rows = [full_header]
     for i, r in enumerate(results, 1):
         full_rows.append([
             str(i),
             r.image_name[:35] + "..." if len(r.image_name) > 35 else r.image_name,
             f"{r.pci_rating:.1f}",
-            r.pavement_condition,
+            str(pavement_condition_label(r.pavement_condition)),
             f"{r.crack_length:.2f}" if r.crack_length > 0 else "—",
             f"{r.alligator_area:.2f}" if r.alligator_area > 0 else "—",
             f"{r.patching_area:.2f}" if r.patching_area > 0 else "—",
             f"{r.pothole_area:.2f}" if r.pothole_area > 0 else "—",
         ])
 
-    full_table = Table(full_rows, colWidths=[8*mm, 48*mm, 14*mm, 24*mm, 16*mm, 18*mm, 18*mm, 18*mm])
+    full_table = Table(full_rows, colWidths=[8*mm, 40*mm, 12*mm, 32*mm, 18*mm, 19*mm, 19*mm, 17*mm])
     full_table.setStyle(TableStyle([
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTNAME', (0, 0), (-1, 0), BOLD_FONT),
+        ('FONTNAME', (0, 1), (-1, -1), REGULAR_FONT),
         ('FONTSIZE', (0, 0), (-1, -1), 6.5),
         ('BACKGROUND', (0, 0), (-1, 0), HexColor('#f1f5f9')),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
@@ -518,8 +537,7 @@ def export_pdf(request, project_id):
     # Footer note
     story.append(Spacer(1, 10*mm))
     story.append(Paragraph(
-        f"Report generated by ZaminTwin.ai Road Inspection Platform. "
-        f"PCI evaluation based on ASTM D6433 methodology.",
+        _("Report generated by ZaminTwin.ai Road Inspection Platform. PCI evaluation based on ASTM D6433 methodology."),
         small_style,
     ))
 

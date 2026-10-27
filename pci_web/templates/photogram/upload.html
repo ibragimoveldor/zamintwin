@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static i18n %}
 
-{% block title %}{{ project.name }} — Upload{% endblock %}
+{% block title %}{{ project.name }} — {% translate "Upload" %}{% endblock %}
 
 {% block style %}
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -147,7 +147,7 @@
 {% endblock %}
 
 {% block breadcrumb %}
-    <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">Projects</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'projects:index' %}">{% translate "Projects" %}</a></li>
     <li class="breadcrumb-item active">{{ project.name }}</li>
 {% endblock %}
 
@@ -162,22 +162,22 @@
     </div>
     {% endif %}
 
-    <a href="{% url 'projects:index' %}" class="up-back"><i class="fa fa-arrow-left"></i> Back to Projects</a>
+    <a href="{% url 'projects:index' %}" class="up-back"><i class="fa fa-arrow-left"></i> {% translate "Back to Projects" %}</a>
     <div class="up-header">
         <div>
             <h4>{{ project.name }}</h4>
             <div class="up-header-meta">
-                {{ project.images.count }} images uploaded · Created {{ project.created_at|date:"M d, Y" }}
+                {% blocktranslate count counter=project.images.count %}{{ counter }} image uploaded{% plural %}{{ counter }} images uploaded{% endblocktranslate %} · {% translate "Created" %} {{ project.created_at|date:"M d, Y" }}
                 {% if project.status == 0 %}
-                    · <span class="status-pill" style="background:#f1f5f9;color:#64748b;">Created</span>
+                    · <span class="status-pill" style="background:#f1f5f9;color:#64748b;">{% translate "Created" %}</span>
                 {% elif project.status == 1 %}
-                    · <span class="status-pill" style="background:#dbeafe;color:#1d4ed8;">Uploaded</span>
+                    · <span class="status-pill" style="background:#dbeafe;color:#1d4ed8;">{% translate "Uploaded" %}</span>
                 {% elif project.status == 2 %}
-                    · <span class="status-pill" style="background:#fef3c7;color:#92400e;"><i class="fa fa-spinner fa-spin"></i> Processing</span>
+                    · <span class="status-pill" style="background:#fef3c7;color:#92400e;"><i class="fa fa-spinner fa-spin"></i> {% translate "Processing" %}</span>
                 {% elif project.status == 3 %}
-                    · <span class="status-pill" style="background:#fee2e2;color:#991b1b;">Failed</span>
+                    · <span class="status-pill" style="background:#fee2e2;color:#991b1b;">{% translate "Failed" %}</span>
                 {% elif project.status == 4 %}
-                    · <span class="status-pill" style="background:#dcfce7;color:#166534;">Completed</span>
+                    · <span class="status-pill" style="background:#dcfce7;color:#166534;">{% translate "Completed" %}</span>
                 {% endif %}
             </div>
         </div>
@@ -188,19 +188,19 @@
         <div class="col-lg-7 mb-3">
             <div class="card-s mb-3">
                 <div class="card-s-head">
-                    <span><i class="fa fa-cloud-upload-alt" style="color:var(--accent);margin-right:6px;"></i> Upload Images</span>
+                    <span><i class="fa fa-cloud-upload-alt" style="color:var(--accent);margin-right:6px;"></i> {% translate "Upload Images" %}</span>
                 </div>
                 <form method="post" enctype="multipart/form-data" id="uploadForm">
                     {% csrf_token %}
                     <div class="upload-zone" id="dropZone">
                         <i class="fa fa-images"></i>
-                        <h6>Drop images here or click to browse</h6>
-                        <p>JPG, JPEG, PNG · Vehicle-mounted camera images</p>
+                        <h6>{% translate "Drop images here or click to browse" %}</h6>
+                        <p>{% translate "JPG, JPEG, PNG · Vehicle-mounted camera images" %}</p>
                         <input type="file" name="image" id="fileInput" multiple accept="image/jpeg,image/jpg,image/png">
                     </div>
                     <div class="file-count" id="fileCount" style="display:none;">
                         <i class="fa fa-images"></i>
-                        <span id="fileCountText">0 files selected</span>
+                        <span id="fileCountText"></span>
                     </div>
                     <div class="upload-progress" id="uploadProgress">
                         <div class="upload-progress-track"><div class="upload-progress-fill" id="uploadFill"></div></div>
@@ -216,7 +216,7 @@
                     </div>
                     <div class="btn-actions">
                         <button type="submit" class="btn-up btn-up-primary" id="uploadBtn" disabled>
-                            <i class="fa fa-upload"></i> Upload Images
+                            <i class="fa fa-upload"></i> {% translate "Upload Images" %}
                         </button>
                     </div>
                 </form>
@@ -225,8 +225,8 @@
             {% if project.images.count > 0 %}
             <div class="card-s">
                 <div class="card-s-head">
-                    <span><i class="fa fa-th" style="color:var(--accent);margin-right:6px;"></i> Uploaded Images</span>
-                    <span class="mono" style="font-size:0.75rem;color:var(--text-secondary);">{{ project.images.count }} files</span>
+                    <span><i class="fa fa-th" style="color:var(--accent);margin-right:6px;"></i> {% translate "Uploaded Images" %}</span>
+                    <span class="mono" style="font-size:0.75rem;color:var(--text-secondary);">{% blocktranslate count counter=project.images.count %}{{ counter }} file{% plural %}{{ counter }} files{% endblocktranslate %}</span>
                 </div>
                 <div class="img-viewer" id="imgViewer">
                     <div class="img-viewer-container">
@@ -236,14 +236,14 @@
                         <div class="img-viewer-info" id="viewerInfo"></div>
                         <div class="img-viewer-nav">
                             <button id="viewerPrev"><i class="fa fa-chevron-left"></i></button>
-                            <button id="viewerFull" title="Fullscreen"><i class="fa fa-expand"></i></button>
+                            <button id="viewerFull" title="{% translate 'Fullscreen' %}"><i class="fa fa-expand"></i></button>
                             <button id="viewerNext"><i class="fa fa-chevron-right"></i></button>
                         </div>
                     </div>
                 </div>
                 <div style="max-height:300px;overflow-y:auto;">
                     <table class="img-table">
-                        <thead><tr><th></th><th>Filename</th><th>Date</th></tr></thead>
+                        <thead><tr><th></th><th>{% translate "Filename" %}</th><th>{% translate "Date" %}</th></tr></thead>
                         <tbody id="imgTableBody">
                             {% for image in project.images.all %}
                             <tr data-idx="{{ forloop.counter0 }}" data-src="/media/{{ image.image }}" data-name="{{ image }}">
@@ -276,7 +276,7 @@
         <div class="col-lg-5 mb-3">
             <div class="card-s">
                 <div class="card-s-head">
-                    <span><i class="fa fa-robot" style="color:var(--accent);margin-right:6px;"></i> PCI Analysis</span>
+                    <span><i class="fa fa-robot" style="color:var(--accent);margin-right:6px;"></i> {% translate "PCI Analysis" %}</span>
                 </div>
 
                 {# Pre-analysis state #}
@@ -284,43 +284,43 @@
                     <div style="padding:24px 16px;text-align:center;">
                         {% if project.status == 4 %}
                             <i class="fa fa-check-circle" style="font-size:2.5rem;color:#22c55e;margin-bottom:12px;"></i>
-                            <h6 style="font-weight:700;">Analysis Complete</h6>
-                            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:16px;">PCI results are ready.</p>
+                            <h6 style="font-weight:700;">{% translate "Analysis Complete" %}</h6>
+                            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:16px;">{% translate "PCI results are ready." %}</p>
                             <div class="complete-actions">
-                                <a href="{% url 'analysis:results' project.id %}" class="btn-up btn-up-green"><i class="fa fa-chart-bar"></i> View Results</a>
-                                <a href="{% url 'analysis:mapview' project.id %}" class="btn-up btn-up-outline"><i class="fa fa-map"></i> Map</a>
+                                <a href="{% url 'analysis:results' project.id %}" class="btn-up btn-up-green"><i class="fa fa-chart-bar"></i> {% translate "View Results" %}</a>
+                                <a href="{% url 'analysis:mapview' project.id %}" class="btn-up btn-up-outline"><i class="fa fa-map"></i> {% translate "Map" %}</a>
                             </div>
                             <div style="margin-top:12px;">
                                 <form method="post" action="{% url 'projects:process' project.id %}" style="display:inline;">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn-up btn-up-outline" style="font-size:0.78rem;" onclick="return confirm('Re-run analysis?');"><i class="fa fa-redo"></i> Re-run</button>
+                                    <button type="submit" class="btn-up btn-up-outline" style="font-size:0.78rem;" onclick="return confirm('{{ _("Re-run analysis?")|escapejs }}');"><i class="fa fa-redo"></i> {% translate "Re-run" %}</button>
                                 </form>
                             </div>
                         {% elif project.status == 3 %}
                             <i class="fa fa-exclamation-triangle" style="font-size:2.5rem;color:#ef4444;margin-bottom:12px;"></i>
-                            <h6 style="font-weight:700;color:#dc2626;">Analysis Failed</h6>
-                            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:16px;">Something went wrong. Check logs or retry.</p>
+                            <h6 style="font-weight:700;color:#dc2626;">{% translate "Analysis Failed" %}</h6>
+                            <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:16px;">{% translate "Something went wrong. Check logs or retry." %}</p>
                             <form method="post" action="{% url 'projects:process' project.id %}">
                                 {% csrf_token %}
-                                <button type="submit" class="btn-up btn-up-red"><i class="fa fa-redo"></i> Retry</button>
+                                <button type="submit" class="btn-up btn-up-red"><i class="fa fa-redo"></i> {% translate "Retry" %}</button>
                             </form>
                         {% elif project.images.count > 0 %}
                             <i class="fa fa-play-circle" style="font-size:2.5rem;color:var(--accent);margin-bottom:12px;"></i>
-                            <h6 style="font-weight:700;">Ready to Analyze</h6>
+                            <h6 style="font-weight:700;">{% translate "Ready to Analyze" %}</h6>
                             <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:4px;">
-                                {{ project.images.count }} images · ~{{ project.images.count }}0 meters of road
+                                {% blocktranslate count counter=project.images.count %}{{ counter }} image · ~{{ counter }}0 meters of road{% plural %}{{ counter }} images · ~{{ counter }}0 meters of road{% endblocktranslate %}
                             </p>
                             <p style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:16px;" class="mono">
-                                Estimated time: ~<span id="etaEstimate"></span>
+                                {% translate "Estimated time:" %} ~<span id="etaEstimate"></span>
                             </p>
                             <form method="post" action="{% url 'projects:process' project.id %}" id="startForm">
                                 {% csrf_token %}
-                                <button type="submit" class="btn-up btn-up-green" id="startBtn"><i class="fa fa-rocket"></i> Start Analysis</button>
+                                <button type="submit" class="btn-up btn-up-green" id="startBtn"><i class="fa fa-rocket"></i> {% translate "Start Analysis" %}</button>
                             </form>
                         {% else %}
                             <i class="fa fa-arrow-left" style="font-size:2rem;color:#94a3b8;margin-bottom:12px;"></i>
-                            <h6 style="font-weight:700;color:var(--text-secondary);">Upload Images First</h6>
-                            <p style="font-size:0.82rem;color:var(--text-secondary);">Upload road survey images to begin PCI assessment.</p>
+                            <h6 style="font-weight:700;color:var(--text-secondary);">{% translate "Upload Images First" %}</h6>
+                            <p style="font-size:0.82rem;color:var(--text-secondary);">{% translate "Upload road survey images to begin PCI assessment." %}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -328,8 +328,8 @@
                 {# PROGRESS PANEL #}
                 <div class="progress-panel {% if project.status == 2 %}show{% endif %}" id="progressPanel">
                     <div class="progress-header">
-                        <h6><i class="fa fa-spinner fa-spin" style="color:var(--accent);margin-right:6px;"></i> Analyzing...</h6>
-                        <div class="progress-eta" id="progressEta">Calculating...</div>
+                        <h6><i class="fa fa-spinner fa-spin" style="color:var(--accent);margin-right:6px;"></i> {% translate "Analyzing..." %}</h6>
+                        <div class="progress-eta" id="progressEta">{% translate "Calculating..." %}</div>
                     </div>
                     <div class="progress-track">
                         <div class="progress-fill" id="progressFill" style="width:0%;"></div>
@@ -341,19 +341,19 @@
                     <div class="stage-list" id="stageList">
                         <div class="stage-item waiting" data-stage="0">
                             <div class="stage-icon"><i class="fa fa-layer-group"></i></div>
-                            <div><div class="stage-name">Preparing images</div><div class="stage-detail">Stacking into 10m tiles</div></div>
+                            <div><div class="stage-name">{% translate "Preparing images" %}</div><div class="stage-detail">{% translate "Stacking into 10m tiles" %}</div></div>
                         </div>
                         <div class="stage-item waiting" data-stage="1">
                             <div class="stage-icon"><i class="fa fa-search"></i></div>
-                            <div><div class="stage-name">Detecting defects</div><div class="stage-detail">AI crack detection & segmentation</div></div>
+                            <div><div class="stage-name">{% translate "Detecting defects" %}</div><div class="stage-detail">{% translate "AI crack detection & segmentation" %}</div></div>
                         </div>
                         <div class="stage-item waiting" data-stage="2">
                             <div class="stage-icon"><i class="fa fa-ruler-combined"></i></div>
-                            <div><div class="stage-name">Measuring damage</div><div class="stage-detail">Width & area calculation</div></div>
+                            <div><div class="stage-name">{% translate "Measuring damage" %}</div><div class="stage-detail">{% translate "Width & area calculation" %}</div></div>
                         </div>
                         <div class="stage-item waiting" data-stage="3">
                             <div class="stage-icon"><i class="fa fa-calculator"></i></div>
-                            <div><div class="stage-name">Calculating PCI</div><div class="stage-detail">ASTM D6433 evaluation</div></div>
+                            <div><div class="stage-name">{% translate "Calculating PCI" %}</div><div class="stage-detail">{% translate "ASTM D6433 evaluation" %}</div></div>
                         </div>
                     </div>
                 </div>
@@ -361,11 +361,11 @@
                 {# COMPLETION PANEL #}
                 <div class="complete-card" id="completeCard">
                     <i class="fa fa-check-circle"></i>
-                    <h5>Analysis Complete!</h5>
-                    <p id="completeMsg">PCI results are ready.</p>
+                    <h5>{% translate "Analysis Complete!" %}</h5>
+                    <p id="completeMsg">{% translate "PCI results are ready." %}</p>
                     <div class="complete-actions">
-                        <a href="{% url 'analysis:results' project.id %}" class="btn-up btn-up-green"><i class="fa fa-chart-bar"></i> View Dashboard</a>
-                        <a href="{% url 'analysis:mapview' project.id %}" class="btn-up btn-up-outline"><i class="fa fa-map"></i> Map View</a>
+                        <a href="{% url 'analysis:results' project.id %}" class="btn-up btn-up-green"><i class="fa fa-chart-bar"></i> {% translate "View Dashboard" %}</a>
+                        <a href="{% url 'analysis:mapview' project.id %}" class="btn-up btn-up-outline"><i class="fa fa-map"></i> {% translate "Map View" %}</a>
                     </div>
                 </div>
             </div>
@@ -373,14 +373,14 @@
             {% if project.status == 4 %}
             <div class="card-s mt-3">
                 <div class="card-s-head">
-                    <span><i class="fa fa-download" style="color:#059669;margin-right:6px;"></i> Export</span>
+                    <span><i class="fa fa-download" style="color:#059669;margin-right:6px;"></i> {% translate "Export" %}</span>
                 </div>
                 <div style="padding:12px 16px; display:flex; gap:8px; flex-wrap:wrap;">
                     <a href="{% url 'analysis:export_pdf' project.id %}" class="btn-up btn-up-outline" style="font-size:0.78rem;">
-                        <i class="fa fa-file-pdf" style="color:#dc2626;"></i> PDF Report
+                        <i class="fa fa-file-pdf" style="color:#dc2626;"></i> {% translate "PDF Report" %}
                     </a>
                     <a href="{% url 'analysis:download' project.id %}" class="btn-up btn-up-outline" style="font-size:0.78rem;">
-                        <i class="fa fa-file-csv" style="color:#059669;"></i> CSV Data
+                        <i class="fa fa-file-csv" style="color:#059669;"></i> {% translate "CSV Data" %}
                     </a>
                 </div>
             </div>
@@ -415,7 +415,7 @@ $(document).ready(function() {
     });
     fileInput.on('change', function() { updateFileCount(this.files.length); });
     function updateFileCount(n) {
-        if (n > 0) { $('#fileCount').show(); $('#fileCountText').text(n + ' file' + (n>1?'s':'') + ' selected'); $('#uploadBtn').prop('disabled', false); }
+        if (n > 0) { $('#fileCount').show(); $('#fileCountText').text(fmt('{{ _("Files selected: %(count)s")|escapejs }}', {count: n})); $('#uploadBtn').prop('disabled', false); }
         else { $('#fileCount').hide(); $('#uploadBtn').prop('disabled', true); }
     }
 
@@ -432,7 +432,7 @@ $(document).ready(function() {
         for (var i = 0; i < totalFiles; i++) totalSize += files[i].size;
 
         // Show progress UI
-        $('#uploadBtn').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Uploading...');
+        $('#uploadBtn').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> {{ _("Uploading...")|escapejs }}');
         $('#uploadProgress').addClass('show');
         $('#uploadDone').removeClass('show');
         $('#fileCount').hide();
@@ -461,31 +461,31 @@ $(document).ready(function() {
 
             $('#uploadFill').css('width', pct + '%');
             $('#uploadPct').text(Math.floor(pct) + '%');
-            $('#uploadFileCount').text(filesUploaded + ' / ' + totalFiles + ' files · ' + formatSize(e.loaded) + ' / ' + formatSize(e.total));
+            $('#uploadFileCount').text(filesUploaded + ' / ' + totalFiles + ' {{ _("files")|escapejs }} · ' + formatSize(e.loaded) + ' / ' + formatSize(e.total));
 
             var speedStr = formatSize(speed) + '/s';
-            var timeStr = remaining < 60 ? Math.ceil(remaining) + 's' : Math.floor(remaining / 60) + 'm ' + Math.ceil(remaining % 60) + 's';
-            $('#uploadSpeed').text(speedStr + ' · ~' + timeStr + ' left');
+            var timeStr = formatTime(Math.ceil(remaining));
+            $('#uploadSpeed').text(speedStr + ' · ~' + timeStr + ' {{ _("left")|escapejs }}');
         });
 
         xhr.addEventListener('load', function() {
             $('#uploadFill').css('width', '100%');
             $('#uploadPct').text('100%');
             $('#uploadSpeed').text('');
-            $('#uploadFileCount').text(totalFiles + ' / ' + totalFiles + ' files · ' + formatSize(totalSize) + ' / ' + formatSize(totalSize));
+            $('#uploadFileCount').text(totalFiles + ' / ' + totalFiles + ' {{ _("files")|escapejs }} · ' + formatSize(totalSize) + ' / ' + formatSize(totalSize));
             $('#uploadProgress').removeClass('show');
             $('#uploadDone').addClass('show');
             var elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-            $('#uploadDoneText').text(totalFiles + ' images uploaded (' + formatSize(totalSize) + ') in ' + elapsed + 's');
+            $('#uploadDoneText').text(fmt('{{ _("Images uploaded: %(count)s (%(size)s) in %(seconds)s s")|escapejs }}', {count: totalFiles, size: formatSize(totalSize), seconds: elapsed}));
 
             // Reload page after short delay to show updated state
             setTimeout(function() { window.location.reload(); }, 1500);
         });
 
         xhr.addEventListener('error', function() {
-            $('#uploadBtn').prop('disabled', false).html('<i class="fa fa-upload"></i> Upload Images');
+            $('#uploadBtn').prop('disabled', false).html('<i class="fa fa-upload"></i> {{ _("Upload Images")|escapejs }}');
             $('#uploadProgress').removeClass('show');
-            alert('Upload failed. Please check your connection and try again.');
+            alert('{{ _("Upload failed. Please check your connection and try again.")|escapejs }}');
         });
 
         xhr.open('POST', uploadForm.action || window.location.href, true);
@@ -627,11 +627,11 @@ $(document).ready(function() {
 
         var remaining = Math.max(0, totalEst - elapsed);
         if (pct > 5) { remaining = Math.max(0, (elapsed / (pct / 100)) - elapsed); }
-        $('#progressEta').text('~' + formatTime(Math.ceil(remaining)) + ' remaining');
+        $('#progressEta').text('~' + formatTime(Math.ceil(remaining)) + ' {{ _("remaining")|escapejs }}');
 
         if (elapsed > 2) {
             var done = Math.floor(pct / 100 * imgCount);
-            $('#progressRate').text(done + '/' + imgCount + ' images · ' + (elapsed / Math.max(done,1)).toFixed(1) + 's/img');
+            $('#progressRate').text(done + '/' + imgCount + ' {{ _("images")|escapejs }} · ' + (elapsed / Math.max(done,1)).toFixed(1) + ' {{ _("s/img")|escapejs }}');
         }
 
         var cumWeight = 0;
@@ -654,11 +654,11 @@ $(document).ready(function() {
         sessionStorage.removeItem(storageKey);
         $('#progressFill').css('width', '100%');
         $('#progressPct').text('100%');
-        $('#progressEta').text('Done!');
+        $('#progressEta').text('{{ _("Done!")|escapejs }}');
         $('.stage-item').removeClass('waiting active').addClass('done');
         $('.stage-icon').html('<i class="fa fa-check"></i>');
         var elapsed = (Date.now() - startTime) / 1000;
-        $('#completeMsg').text('Processed ' + imgCount + ' images in ' + formatTime(Math.ceil(elapsed)));
+        $('#completeMsg').text(fmt('{{ _("Images processed: %(count)s in %(time)s")|escapejs }}', {count: imgCount, time: formatTime(Math.ceil(elapsed))}));
         setTimeout(function() { $('#progressPanel').removeClass('show'); $('#completeCard').addClass('show'); }, 1500);
     }
 
@@ -666,17 +666,17 @@ $(document).ready(function() {
         completed = true;
         clearInterval(simInterval); clearInterval(pollInterval);
         sessionStorage.removeItem(storageKey);
-        $('#progressEta').text('Failed').css('color', '#ef4444');
+        $('#progressEta').text('{{ _("Failed")|escapejs }}').css('color', '#ef4444');
         $('.stage-item.active').removeClass('active').addClass('failed');
         $('.stage-item.failed .stage-icon').html('<i class="fa fa-times"></i>');
     }
 
     function formatTime(sec) {
-        if (sec < 60) return sec + 's';
+        if (sec < 60) return sec + ' {{ _("sec")|escapejs }}';
         var m = Math.floor(sec / 60), s = sec % 60;
-        if (m < 60) return m + 'min ' + (s > 0 ? s + 's' : '');
+        if (m < 60) return m + ' {{ _("min")|escapejs }} ' + (s > 0 ? s + ' {{ _("sec")|escapejs }}' : '');
         var h = Math.floor(m / 60); m = m % 60;
-        return h + 'h ' + m + 'min';
+        return h + ' {{ _("h")|escapejs }} ' + m + ' {{ _("min")|escapejs }}';
     }
 });
 </script>

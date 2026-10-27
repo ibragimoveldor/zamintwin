@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% load i18n %}
 {% load static %}
 
-{% block title %}Road Inspection{% endblock %}
+{% block title %}{% translate "Road Inspection" %}{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item active">Road Inspection</li>
+<li class="breadcrumb-item active">{% translate "Road Inspection" %}</li>
 {% endblock %}
 
 {% block style %}
@@ -72,8 +73,8 @@
 {% block content %}
 <div class="city-page">
     <div class="city-header">
-        <h2>Road Inspection</h2>
-        <p>Select a city to view road condition data, or upload new sessions.</p>
+        <h2>{% translate "Road Inspection" %}</h2>
+        <p>{% translate "Select a city to view road condition data, or upload new sessions." %}</p>
     </div>
 
     {% if cities %}
@@ -82,43 +83,43 @@
         <a href="{% url 'sessions:network_map' %}?city={{ city.name|urlencode }}" class="city-card">
             <div class="city-name">
                 <div class="city-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6;"><i class="fa fa-city"></i></div>
-                {{ city.name }}
+                {% if city.name == "Uncategorized" %}{% translate "Uncategorized" %}{% else %}{{ city.name }}{% endif %}
             </div>
             <div class="city-stats">
                 <div class="city-stat">
-                    <div class="label">Sessions</div>
+                    <div class="label">{% translate "Sessions" %}</div>
                     <div class="value">{{ city.sessions }}</div>
                 </div>
                 <div class="city-stat">
-                    <div class="label">Surveyed</div>
-                    <div class="value">{{ city.total_distance }} km</div>
+                    <div class="label">{% translate "Surveyed" %}</div>
+                    <div class="value">{{ city.total_distance }} {% translate "km" %}</div>
                 </div>
                 <div class="city-stat">
-                    <div class="label">Avg PCI</div>
+                    <div class="label">{% translate "Avg PCI" %}</div>
                     <div class="value" style="color:{% if city.avg_pci >= 85 %}#22c55e{% elif city.avg_pci >= 70 %}#84cc16{% elif city.avg_pci >= 55 %}#eab308{% elif city.avg_pci %}#ef4444{% else %}var(--text-secondary){% endif %}">
                         {% if city.avg_pci %}{{ city.avg_pci }}{% else %}—{% endif %}
                     </div>
                 </div>
                 <div class="city-stat">
-                    <div class="label">Defects</div>
+                    <div class="label">{% translate "Defects" %}</div>
                     <div class="value" style="color:#f97316;">{{ city.total_defects }}</div>
                 </div>
             </div>
-            <div class="city-enter"><i class="fa fa-map-marked-alt"></i> Open Map</div>
+            <div class="city-enter"><i class="fa fa-map-marked-alt"></i> {% translate "Open Map" %}</div>
         </a>
         {% endfor %}
 
         <a href="{% url 'sessions:network_map' %}" class="add-city-card">
             <i class="fa fa-plus-circle"></i>
-            <span>Upload New Session</span>
+            <span>{% translate "Upload New Session" %}</span>
         </a>
     </div>
     {% else %}
     <div class="empty-city">
         <i class="fa fa-satellite-dish"></i>
-        <h3>No inspections yet</h3>
-        <p>Upload your first road inspection session to get started. Sessions will be automatically grouped by city.</p>
-        <a href="{% url 'sessions:network_map' %}"><i class="fa fa-cloud-upload-alt"></i> Upload First Session</a>
+        <h3>{% translate "No inspections yet" %}</h3>
+        <p>{% translate "Upload your first road inspection session to get started. Sessions will be automatically grouped by city." %}</p>
+        <a href="{% url 'sessions:network_map' %}"><i class="fa fa-cloud-upload-alt"></i> {% translate "Upload First Session" %}</a>
     </div>
     {% endif %}
 </div>
