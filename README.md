@@ -52,8 +52,7 @@ zamintwin_web/
 │
 └── docker/                   # Full-stack orchestration
     ├── docker-compose.yml    # nginx, postgres, redis, web, celery, ai-service
-    ├── nginx/                # Reverse proxy config
-    └── ddns/                 # Cloudflare dynamic DNS updater
+    └── nginx/                # Reverse proxy config
 ```
 
 ### Why two services?

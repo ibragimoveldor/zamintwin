@@ -19,7 +19,6 @@ staticfiles/
 .env.local
 .env.production
 docker/.env
-docker/ddns/.env
 
 # TLS certificates and private keys — never commit
 docker/nginx/ssl/

@@ -293,7 +293,7 @@ $(document).ready(function() {
 
     // ===== MAP =====
     var map = L.map('fullMap');
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { referrerPolicy: 'strict-origin-when-cross-origin',
         maxZoom: 19, attribution: '© OpenStreetMap'
     }).addTo(map);
 

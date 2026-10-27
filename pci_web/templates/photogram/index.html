@@ -331,7 +331,7 @@ $(document).ready(function() {
     $('#projectModal').on('shown.bs.modal', function() {
         if (!createMap) {
             createMap = L.map('createMap').setView([37.26, 127.55], 7);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { referrerPolicy: 'strict-origin-when-cross-origin',
                 maxZoom: 19, attribution: '© OpenStreetMap'
             }).addTo(createMap);
 

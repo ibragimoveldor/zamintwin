@@ -382,14 +382,21 @@ function getCSRF() {
 }
 
 const map = L.map('map', { zoomControl: false }).setView([41.311, 69.28], 13);
-var _darkTiles = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-var _lightTiles = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-var _tileOpts = { attribution: '&copy; OSM &copy; CARTO', subdomains: 'abcd', maxZoom: 19 };
+// Key-free basemaps: OSM for light, Esri Dark Gray Canvas for dark (CARTO now requires an API key)
+var _darkTiles = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+var _darkLabels = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}';
+var _lightTiles = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+var _darkOpts = { attribution: 'Tiles &copy; Esri', maxNativeZoom: 16, maxZoom: 19 };
+var _lightOpts = { attribution: '&copy; OpenStreetMap contributors', subdomains: 'abc', maxZoom: 19, referrerPolicy: 'strict-origin-when-cross-origin' };
+function _makeTiles(dark) {
+    if (!dark) return L.tileLayer(_lightTiles, _lightOpts);
+    return L.layerGroup([L.tileLayer(_darkTiles, _darkOpts), L.tileLayer(_darkLabels, _darkOpts)]);
+}
 var _isDark = (localStorage.getItem('theme') || 'light') === 'dark';
-var _tileLayer = L.tileLayer(_isDark ? _darkTiles : _lightTiles, _tileOpts).addTo(map);
+var _tileLayer = _makeTiles(_isDark).addTo(map);
 window.addEventListener('themeChanged', function(e) {
     map.removeLayer(_tileLayer);
-    _tileLayer = L.tileLayer(e.detail.dark ? _darkTiles : _lightTiles, _tileOpts).addTo(map);
+    _tileLayer = _makeTiles(e.detail.dark).addTo(map);
 });
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 

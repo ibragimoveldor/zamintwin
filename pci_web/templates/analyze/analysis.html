@@ -482,7 +482,7 @@ $(document).ready(function() {
 
     // ===== MAP =====
     var map=L.map('roadMap');
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ referrerPolicy: 'strict-origin-when-cross-origin',maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
     var markers=[],bounds=[],polyPts=[];
     details.forEach(function(d,idx){
         var gps=parseGPS(d.img_name);
